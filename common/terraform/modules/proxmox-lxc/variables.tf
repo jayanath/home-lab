@@ -1,8 +1,3 @@
-variable "label" {
-  type        = string
-  description = "A common label for resource identification, such as a project code prefix"
-}
-
 variable "target_node" {
   type        = string
   description = "A cluster node name for the LXC container to live"
@@ -39,7 +34,7 @@ variable "cpulimit" {
 variable "cpuunits" {
   type        = number
   description = "A number of the CPU weight that the container possesses"
-  default     = 1024
+  default     = 100
 }
 
 variable "memory" {
@@ -57,6 +52,12 @@ variable "description" {
 variable "onboot" {
   type        = bool
   description = "A boolean that determines if the container will start on boot"
+  default     = true
+}
+
+variable "start" {
+  type        = bool
+  description = "A boolean that determines if the container is started after creation"
   default     = true
 }
 
