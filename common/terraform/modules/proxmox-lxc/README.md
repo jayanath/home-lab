@@ -27,10 +27,9 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_cores"></a> [cores](#input\_cores) | The number of cores assigned to the container | `number` | `1` | no |
 | <a name="input_cpulimit"></a> [cpulimit](#input\_cpulimit) | A number to limit CPU usage by | `number` | `1` | no |
-| <a name="input_cpuunits"></a> [cpuunits](#input\_cpuunits) | A number of the CPU weight that the container possesses | `number` | `1024` | no |
+| <a name="input_cpuunits"></a> [cpuunits](#input\_cpuunits) | A number of the CPU weight that the container possesses | `number` | `100` | no |
 | <a name="input_description"></a> [description](#input\_description) | The container description seen in the web interface | `string` | `"lxc-container"` | no |
 | <a name="input_hostname"></a> [hostname](#input\_hostname) | Host name of the container | `string` | n/a | yes |
-| <a name="input_label"></a> [label](#input\_label) | A common label for resource identification, such as a project code prefix | `string` | n/a | yes |
 | <a name="input_memory"></a> [memory](#input\_memory) | A number containing the amount of RAM to assign to the container (in MB) | `number` | `512` | no |
 | <a name="input_network_bridge"></a> [network\_bridge](#input\_network\_bridge) | The bridge to attach the network interface to (e.g. vmbr0) | `string` | `"vmbr0"` | no |
 | <a name="input_network_ip"></a> [network\_ip](#input\_network\_ip) | The IPv4 address of the network interface. Can be a static IPv4 address (in CIDR notation), dhcp, or manual | `string` | n/a | yes |

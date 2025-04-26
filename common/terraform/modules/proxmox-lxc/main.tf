@@ -9,6 +9,7 @@ resource "proxmox_lxc" "lxc" {
   memory       = var.memory
   description  = var.description
   onboot       = var.onboot
+  start        = var.start
   vmid         = var.vmid
 
   ssh_public_keys = var.ssh_public_keys
