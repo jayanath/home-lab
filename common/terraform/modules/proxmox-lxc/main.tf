@@ -13,6 +13,7 @@ resource "proxmox_lxc" "lxc" {
   vmid         = var.vmid
 
   ssh_public_keys = var.ssh_public_keys
+  password        = var.root_password
 
   // Terraform will crash without rootfs defined
   rootfs {

@@ -100,3 +100,8 @@ variable "network_ip" {
   type        = string
   description = "The IPv4 address of the network interface. Can be a static IPv4 address (in CIDR notation), dhcp, or manual"
 }
+
+variable "root_password" {
+  type        = string
+  description = "The root password inside the container"
+}
