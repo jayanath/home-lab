@@ -9,6 +9,7 @@ module "traefik_container" {
   description = var.description
 
   ssh_public_keys = var.ssh_public_keys
+  root_password   = var.root_password
 
   rootfs_storage = var.rootfs_storage
   rootfs_size    = var.rootfs_size
