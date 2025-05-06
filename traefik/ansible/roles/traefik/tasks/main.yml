@@ -1,4 +1,4 @@
-#SPDX-License-Identifier: MIT-0
+
 ---
 # tasks file for traefik
 
@@ -6,9 +6,6 @@
   ansible.builtin.apt:
     name:
       - libcap2-bin
-      - curl
-      - tar
-      - gzip
     state: present
     update_cache: yes
 

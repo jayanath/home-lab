@@ -22,10 +22,10 @@ certificatesResolvers:
           - "8.8.8.8:53"
 
 log:
-  level: DEBUG
+  level: INFO
   format: common
 
 providers:
   file:
-    directory: dynamic
+    directory: /etc/traefik/dynamic
     watch: true

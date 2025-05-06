@@ -18,16 +18,16 @@ resource "proxmox_lxc" "traefik" {
   // Terraform will crash without rootfs defined
   rootfs {
     storage = "ceph"
-    size    = "4G"
+    size    = "10G"
   }
 
-  mountpoint {
-    key     = "0"
-    slot    = 0
-    size    = "8G"
-    mp      = "/traefik-config"
-    storage = "ceph"
-  }
+  # mountpoint {
+  #   key     = "0"
+  #   slot    = 0
+  #   size    = "8G"
+  #   mp      = "/traefik-config"
+  #   storage = "ceph"
+  # }
 
   network {
     name   = "eth0"
@@ -36,9 +36,9 @@ resource "proxmox_lxc" "traefik" {
     gw     = "192.168.193.1"
   }
 
-  lifecycle {
-    ignore_changes = [
-      mountpoint[0].storage
-    ]
-  }
+  # lifecycle {
+  #   ignore_changes = [
+  #     mountpoint[0].storage
+  #   ]
+  # }
 }

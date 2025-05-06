@@ -3,7 +3,7 @@ Description=Traefik Reverse Proxy
 After=network.target
 
 [Service]
-ExecStart={{ traefik_install_path }} --configFile={{ traefik_config_base_dir }}/traefik.yaml
+ExecStart={{ traefik_install_path }} --configFile={{ traefik_config_base_dir }}/traefik.yml
 WorkingDirectory=/home/{{ traefik_user }}
 Restart=always
 RestartSec=3
