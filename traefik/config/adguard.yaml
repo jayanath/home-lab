@@ -1,0 +1,15 @@
+http:
+  routers:
+    to-adguard:
+      entryPoints:
+        - websecure
+      rule: "Host(`adguard.jayforweb.com`)"
+      service: adguard
+      tls:
+        certResolver: dnsresolver
+
+  services:
+    adguard:
+      loadBalancer:
+        servers:
+          - url: http://192.168.193.10
