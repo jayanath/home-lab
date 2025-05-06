@@ -93,6 +93,8 @@
     owner: "{{ traefik_user }}"
     group: "{{ traefik_group }}"
     mode: '0644'
+  notify:
+    - restart traefik    
 
 - name: Copy all the traefik dynamic configuration files
   ansible.builtin.copy:
@@ -102,6 +104,8 @@
     group: "{{ traefik_group }}"
     mode: '0644'
   loop: "{{ traefik_dynamic_config_files }}" 
+  notify:
+    - restart traefik
 
 - name: Copy traefik systemd unit file
   ansible.builtin.template:
@@ -110,6 +114,8 @@
     owner: root
     group: root
     mode: '0644'
+  register: traefik_unit_file_task # Register the results
+  notify: restart traefik # Also notify restart handler if the service file changes
 
 # We get port binding permission errors without this CAP_NET_BIND_SERVICE capability
 - name: Grant CAP_NET_BIND_SERVICE capability to traefik executable
@@ -130,13 +136,14 @@
 - name: Reload systemd daemon
   ansible.builtin.systemd:
     daemon_reload: yes
+  when: traefik_unit_file_task.changed  
 
-- name: Enable and start traefik service on boot
+- name: Enable traefik service on boot
   ansible.builtin.systemd:
     name: traefik
     enabled: yes
 
-- name: Start traefik service
+- name: Ensure traefik service is started
   ansible.builtin.systemd:
     name: traefik
     state: started
