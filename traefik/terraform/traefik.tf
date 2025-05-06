@@ -21,24 +21,10 @@ resource "proxmox_lxc" "traefik" {
     size    = "10G"
   }
 
-  # mountpoint {
-  #   key     = "0"
-  #   slot    = 0
-  #   size    = "8G"
-  #   mp      = "/traefik-config"
-  #   storage = "ceph"
-  # }
-
   network {
     name   = "eth0"
     bridge = "vmbr0"
     ip     = "192.168.193.50/32"
     gw     = "192.168.193.1"
   }
-
-  # lifecycle {
-  #   ignore_changes = [
-  #     mountpoint[0].storage
-  #   ]
-  # }
 }
