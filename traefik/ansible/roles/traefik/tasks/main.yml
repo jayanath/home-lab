@@ -1,3 +1,136 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for traefik
+
+- name: Install all the rquired packages
+  ansible.builtin.apt:
+    name:
+      - libcap2-bin
+      - curl
+      - tar
+      - gzip
+    state: present
+    update_cache: yes
+
+- name: We need the traefik group
+  ansible.builtin.group:
+    name: "{{ traefik_group }}"
+    state: present
+    system: yes
+
+- name: Create traefik user if not there
+  ansible.builtin.user:
+    name: "{{ traefik_user }}"
+    state: present
+    group: "{{ traefik_group }}"
+    home: "{{ traefik_aws_credentials_base_dir }}" # Set home to where .aws will go
+    system: yes
+    shell: /sbin/nologin
+    create_home: yes
+
+- name: Download traefik binary tarball
+  ansible.builtin.get_url:
+    url: "{{ traefik_binary_url }}"
+    dest: "/tmp/traefik_{{ traefik_version }}.tar.gz"
+    mode: '0644'
+
+- name: Extract traefik binary
+  ansible.builtin.unarchive:
+    src: "/tmp/traefik_{{ traefik_version }}.tar.gz"
+    dest: "/tmp/"
+    remote_src: yes
+
+- name: Move traefik binary to install path
+  ansible.builtin.copy:
+    src: "/tmp/traefik" # This is the name of the extracted binary
+    dest: "{{ traefik_install_path }}"
+    owner: root
+    group: root
+    mode: '0755'
+    remote_src: yes
+
+- name: Clean up the unwanted files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/traefik_{{ traefik_version }}.tar.gz"
+    - "/tmp/traefik"
+
+- name: Create traefik base directory
+  ansible.builtin.file:
+    path: "{{ traefik_config_base_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create traefik dynamic config files directory
+  ansible.builtin.file:
+    path: "{{ traefik_dynamic_config_dir }}"
+    state: directory
+    owner: "{{ traefik_user }}"
+    group: "{{ traefik_group }}"
+    mode: '0755'
+
+- name: Create .aws directory in traefik user's home
+  ansible.builtin.file:
+    path: "{{ traefik_aws_credentials_base_dir }}/.aws"
+    state: directory
+    owner: "{{ traefik_user }}"
+    group: "{{ traefik_group }}"
+    mode: '0700'
+
+- name: Copy AWS credentials file to traefik user's home (Vaulted)
+  ansible.builtin.copy:
+    src: files/.aws/credentials # Source file relative to role's files/ dir
+    dest: "{{ traefik_aws_credentials_path }}"
+    owner: "{{ traefik_user }}"
+    group: "{{ traefik_group }}"
+    mode: '0600' # Keep this secure
+
+- name: Copy traefik static configuration file (traefik.yml)
+  ansible.builtin.copy:
+    src: files/traefik.yml
+    dest: "{{ traefik_config_base_dir }}/traefik.yml"
+    owner: "{{ traefik_user }}"
+    group: "{{ traefik_group }}"
+    mode: '0644'
+
+- name: Copy all the traefik dynamic configuration files
+  ansible.builtin.copy:
+    src: "files/dynamic/{{ item }}"
+    dest: "{{ traefik_dynamic_config_dir }}/{{ item }}"
+    owner: "{{ traefik_user }}"
+    group: "{{ traefik_group }}"
+    mode: '0644'
+  loop: "{{ traefik_dynamic_config_files }}" 
+
+- name: Copy traefik systemd unit file
+  ansible.builtin.template:
+    src: traefik.service.j2 # Source template file relative to role's templates/ dir
+    dest: "{{ traefik_systemd_unit_path }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+# We get port binding permission errors without this CAP_NET_BIND_SERVICE capability
+- name: Grant CAP_NET_BIND_SERVICE capability to traefik executable
+  community.general.capabilities:
+    path: "{{ traefik_install_path }}"
+    capability: cap_net_bind_service+ep
+    state: present
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Enable and start traefik service on boot
+  ansible.builtin.systemd:
+    name: traefik
+    enabled: yes
+
+- name: Start traefik service
+  ansible.builtin.systemd:
+    name: traefik
+    state: started
