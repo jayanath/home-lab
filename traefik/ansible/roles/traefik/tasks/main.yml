@@ -121,6 +121,15 @@
     capability: cap_net_bind_service+ep
     state: present
 
+# Need this for the ACME to work.
+- name: Create empty acme.json file and set permissions
+  ansible.builtin.file:
+    path: "{{ traefik_config_base_dir }}/acme.json"
+    state: touch
+    owner: "{{ traefik_user }}"
+    group: "{{ traefik_group }}"
+    mode: '0600'
+
 - name: Reload systemd daemon
   ansible.builtin.systemd:
     daemon_reload: yes
