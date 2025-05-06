@@ -1,0 +1,9 @@
+# Ansible playbook to configure traefik
+---
+- name: Deploy and Configure Traefik LXC Container
+  hosts: traefik_lxc
+  gather_facts: yes
+  become: yes
+
+  roles:
+    - role: traefik
