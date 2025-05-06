@@ -1,0 +1,19 @@
+http:
+  routers:
+    to-pmox:
+      entryPoints:
+        - websecure
+      rule: "Host(`pmox.jayforweb.com`)"
+      service: pmox
+      tls:
+        certResolver: dnsresolver
+
+  services:
+    pmox:
+      loadBalancer:
+        servers:
+          - url: "https://pmox01.jayforweb.com:8006"
+          - url: "https://pmox02.jayforweb.com:8006"
+          - url: "https://pmox03.jayforweb.com:8006"
+
+ 
