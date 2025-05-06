@@ -11,7 +11,7 @@
     traefik_dynamic_config_files:
       - adguard.yml
       - dashboard.yml
-      - pmox.yaml
+      - pmox.yml
       - middlewares.yml
       - redirect.yml     
 
