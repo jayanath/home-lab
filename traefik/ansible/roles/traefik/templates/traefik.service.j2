@@ -1,0 +1,17 @@
+[Unit]
+Description=Traefik Reverse Proxy
+After=network.target
+
+[Service]
+ExecStart={{ traefik_install_path }} --configFile={{ traefik_config_base_dir }}/traefik.yaml
+WorkingDirectory=/home/{{ traefik_user }}
+Restart=always
+RestartSec=3
+User={{ traefik_user }}
+Group={{ traefik_group }}
+
+# Set environment variables - AWS_REGION is needed for Route53 ACME
+Environment="AWS_REGION={{ traefik_aws_region }}"
+
+[Install]
+WantedBy=multi-user.target
