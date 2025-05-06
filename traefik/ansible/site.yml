@@ -5,5 +5,16 @@
   gather_facts: yes
   become: yes
 
+  vars:
+    traefik_aws_region: "ap-southeast-2"
+    traefik_version: "3.4.0"
+    traefik_dynamic_config_files:
+      - adguard.yml
+      - dashboard.yml
+      - pmox.yaml
+      - middlewares.yml
+      - redirect.yml     
+
   roles:
     - role: traefik
+ 

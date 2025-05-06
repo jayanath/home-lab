@@ -1,3 +1,27 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for traefik
+
+# Traefik Version
+traefik_version: "3.4.0"
+traefik_binary_arch: "linux_amd64"
+traefik_binary_url: "https://github.com/traefik/traefik/releases/download/v{{ traefik_version }}/traefik_v{{ traefik_version }}_{{ traefik_binary_arch }}.tar.gz"
+
+# User and Group
+traefik_user: traefik
+traefik_group: traefik
+
+# Paths
+traefik_install_dir: /usr/local/bin
+traefik_install_path: "{{ traefik_install_dir }}/traefik"
+traefik_config_base_dir: /etc/traefik
+traefik_dynamic_config_dir: "{{ traefik_config_base_dir }}/dynamic"
+traefik_aws_credentials_base_dir: "/home/{{ traefik_user }}"
+traefik_aws_credentials_path: "{{ traefik_aws_credentials_base_dir }}/.aws/credentials"
+traefik_systemd_unit_path: /etc/systemd/system/traefik.service
+
+# AWS Region for ACME Route53
+traefik_aws_region: ap-southeast-2
+
+# List of dynamic config files to deploy
+traefik_dynamic_config_files: []
