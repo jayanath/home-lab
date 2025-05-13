@@ -31,9 +31,9 @@
   become_user: postgres
 
 - name: Create Keycloak database user
-  ansible.builtin.postgresql_user:
+  community.postgresql.postgresql_user:
     database: "{{ keycloak_db_name }}"
-    name: "{{ keycloak_db_user }}"
+    user: "{{ keycloak_db_user }}"
     password: "{{ keycloak_db_password }}"
     state: present
     privs: ALL
