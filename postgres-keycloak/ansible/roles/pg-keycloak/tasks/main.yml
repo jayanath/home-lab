@@ -32,11 +32,11 @@
 
 - name: Create Keycloak database user
   ansible.builtin.postgresql_user:
-    db: "{{ keycloak_db_name }}"
+    database: "{{ keycloak_db_name }}"
     name: "{{ keycloak_db_user }}"
     password: "{{ keycloak_db_password }}"
     state: present
-    priv: ALL
+    privs: ALL
   become_user: postgres
 
 - name: Configure PostgreSQL to listen on all network interfaces
