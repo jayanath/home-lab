@@ -32,11 +32,18 @@
 
 - name: Create Keycloak database user
   community.postgresql.postgresql_user:
-    database: "{{ keycloak_db_name }}"
-    user: "{{ keycloak_db_user }}"
+    name: "{{ keycloak_db_user }}"
     password: "{{ keycloak_db_password }}"
     state: present
+  become_user: postgres
+
+- name: Grant privileges on Keycloak database
+  community.postgresql.postgresql_privs:
+    db: "{{ keycloak_db_name }}" 
+    roles: "{{ keycloak_db_user }}"
     privs: ALL
+    type: database
+    state: present
   become_user: postgres
 
 - name: Configure PostgreSQL to listen on all network interfaces
