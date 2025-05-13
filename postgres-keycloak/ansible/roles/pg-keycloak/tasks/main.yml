@@ -1,0 +1,57 @@
+---
+# tasks file for pg-keycloak role
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install psycopg2 Python library # Required for postgresql
+  ansible.builtin.apt:
+    name: python3-psycopg2
+    state: present
+
+- name: Install PostgreSQL server and client
+  ansible.builtin.apt:
+    name:
+      - "postgresql-{{ postgresql_version }}"
+      - "postgresql-contrib-{{ postgresql_version }}"
+    state: present
+
+- name: Ensure PostgreSQL service is running and enabled
+  ansible.builtin.systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Create Keycloak database
+  ansible.builtin.postgresql_db:
+    name: "{{ keycloak_db_name }}"
+    state: present
+    login_user: postgres # default postgres user
+  become_user: postgres
+
+- name: Create Keycloak database user
+  ansible.builtin.postgresql_user:
+    db: "{{ keycloak_db_name }}"
+    name: "{{ keycloak_db_user }}"
+    password: "{{ keycloak_db_password }}"
+    state: present
+    priv: ALL
+  become_user: postgres
+
+- name: Configure PostgreSQL to listen on all network interfaces
+  ansible.builtin.lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+    regexp: "^#?listen_addresses ="
+    line: "listen_addresses = '*'" # Listen on all interfaces (may have to revisit with firewall rules)
+    state: present
+  notify: Restart postgresql
+
+- name: Configure pg_hba.conf to allow connections from Keycloak LXC
+  ansible.builtin.lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+    insertafter: "^# IPv4 local connections:" # Insert after local connections section to make it neat
+    line: "host    {{ keycloak_db_name }}        {{ keycloak_db_user }}    {{ keycloak_container_ip }}/32       md5" # Allow MD5 auth from Keycloak IP
+    state: present
+  notify: Restart postgresql
+
