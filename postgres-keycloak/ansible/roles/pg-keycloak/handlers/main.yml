@@ -1,0 +1,8 @@
+
+---
+# handlers file for pg-keycloak
+
+- name: Restart postgresql
+  ansible.builtin.systemd:
+    name: postgresql
+    state: restarted

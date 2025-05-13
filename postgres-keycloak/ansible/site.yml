@@ -1,0 +1,10 @@
+# Ansible playbook to configure Postgresql for Keycloak
+---
+- name: Deploy and Configure Postgresql LXC Container
+  hosts: pg_keycloak_lxc
+  gather_facts: yes
+  become: yes
+
+  roles:
+    - role: pg-keycloak
+ 
