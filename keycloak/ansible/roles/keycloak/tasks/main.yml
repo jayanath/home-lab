@@ -1,0 +1,12 @@
+# https://www.keycloak.org/getting-started/getting-started-zip
+---
+# tasks file for keycloak role
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install Java (OpenJDK) - Keycloak needs Java
+  ansible.builtin.apt:
+    name: openjdk-21-jre-headless
+    state: present

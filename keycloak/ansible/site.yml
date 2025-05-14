@@ -1,0 +1,12 @@
+# Ansible playbook to configure Keycloak
+---
+vars_files:
+  - secrets.yml
+
+- name: Configure Keycloak Server
+  hosts: keycloak_servers
+  become: true
+
+  roles:
+    - keycloak
+ 
