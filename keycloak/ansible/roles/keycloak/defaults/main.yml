@@ -1,4 +1,32 @@
 
 ---
 # vars file for keycloak role
+# passwords are stored in secrets.yml, encrypted by Ansible Vault.
 
+keycloak_version: "26.2.4" 
+keycloak_download_url: "https://github.com/keycloak/keycloak/releases/download/{{ keycloak_version }}/keycloak-{{ keycloak_version }}.tar.gz"
+keycloak_install_dir: "/opt"
+
+keycloak_user: "keycloak"
+keycloak_group: "keycloak"
+
+keycloak_config_dir: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}/conf"
+keycloak_bin_dir: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}/bin"
+
+# Database Connection Details
+postgresql_lxc_ip: "192.168.193.60"
+keycloak_db_vendor: "postgres"
+keycloak_db_driver: "org.postgresql.Driver"
+keycloak_db_name: "keycloak"
+keycloak_db_user: "keycloakuser"
+keycloak_db_url: "jdbc:postgresql://{{ postgresql_lxc_ip }}:5432/{{ keycloak_db_name }}"
+keycloak_db_username: "{{ keycloak_db_user }}"
+# keycloak_db_password is in the secrets.yml
+
+keycloak_admin_user: "admin"
+# keycloak_admin_password  is in the secrets.yml
+
+keycloak_hostname: "auth.jayforweb.com"
+
+keycloak_http_port: 8080
+keycloak_https_port: 8443
