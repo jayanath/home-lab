@@ -10,3 +10,86 @@
   ansible.builtin.apt:
     name: openjdk-21-jre-headless
     state: present
+
+- name: Create Keycloak group
+  ansible.builtin.group:
+    name: "{{ keycloak_group }}"
+    state: present
+
+- name: Create Keycloak user
+  ansible.builtin.user:
+    name: "{{ keycloak_user }}"
+    group: "{{ keycloak_group }}"
+    system: yes
+    shell: /sbin/nologin
+    create_home: no
+    state: present
+
+- name: Download Keycloak
+  ansible.builtin.get_url:
+    url: "{{ keycloak_download_url }}"
+    dest: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
+    mode: '0644'
+
+- name: Ensure Keycloak install directory exists
+  ansible.builtin.file:
+    path: "{{ keycloak_install_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Extract Keycloak tar
+  ansible.builtin.unarchive:
+    src: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
+    dest: "{{ keycloak_install_dir }}"
+    remote_src: yes
+    creates: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}"
+
+- name: Set ownership of Keycloak installation directory
+  ansible.builtin.file:
+    path: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}"
+    owner: "{{ keycloak_user }}"
+    group: "{{ keycloak_group }}"
+    recurse: yes
+
+- name: Configure Keycloak database connection
+  ansible.builtin.template:
+    src: keycloak.conf.j2
+    dest: "{{ keycloak_config_dir }}/keycloak.conf"
+    owner: "{{ keycloak_user }}"
+    group: "{{ keycloak_group }}"
+    mode: '0640'
+  notify: Restart keycloak
+
+- name: Create Keycloak systemd service file
+  ansible.builtin.template:
+    src: keycloak.service.j2
+    dest: "/etc/systemd/system/keycloak.service"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart keycloak
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Set up initial Keycloak admin user
+  ansible.builtin.command: >
+    {{ keycloak_bin_dir }}/kc.sh create-admin
+    --username {{ keycloak_admin_user }}
+    --password {{ keycloak_admin_password }}
+  args:
+    chdir: "{{ keycloak_bin_dir }}"
+    creates: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}/data/keycloak-server.json" # check to see if admin exists
+  environment:
+    KC_ADMIN_USERNAME: "{{ keycloak_admin_user }}"
+    KC_ADMIN_PASSWORD: "{{ keycloak_admin_password }}"
+
+- name: Ensure Keycloak service is running and enabled
+  ansible.builtin.systemd:
+    name: keycloak
+    state: started
+    enabled: yes
+

@@ -1,0 +1,19 @@
+[Unit]
+Description=Keycloak Server
+After=network.target
+
+[Service]
+Type=exec
+User={{ keycloak_user }}
+Group={{ keycloak_group }}
+ExecStart={{ keycloak_bin_dir }}/kc.sh start --optimized
+WorkingDirectory={{ keycloak_bin_dir }}
+LimitNOFILE=102400
+LimitNPROC=102400
+TimeoutStartSec=600
+TimeoutStopSec=600
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

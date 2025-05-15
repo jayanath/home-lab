@@ -1,0 +1,32 @@
+# Basic Keycloak Configuration (Quarkus)
+# https://www.keycloak.org/guides#server
+
+# Hostname configuration
+kc.hostname={{ keycloak_hostname }}
+kc.hostname-strict=true
+# kc.hostname-strict-backchannel=false # set this to true after testing
+
+# Database configuration
+kc.db={{ keycloak_db_vendor }}
+kc.db-url={{ keycloak_db_url }}
+kc.db-username={{ keycloak_db_username }}
+kc.db-password={{ keycloak_db_password }}
+
+# HTTP/HTTPS ports
+# Keycloak listens on these ports for the reverse proxy
+kc.http-enabled=true
+kc.http-port={{ keycloak_http_port }}
+kc.https-port={{ keycloak_https_port }}
+
+# Binding address (listen on all interfaces within the container)
+kc.http-host=0.0.0.0
+
+# Logging
+kc.log=console,file
+kc.log-level=INFO
+kc.log-file=/var/log/keycloak/keycloak.log
+
+# Proxy configuration
+# Required when running Keycloak behind a reverse proxy that terminates TLS
+# 'edge' is typically used when the proxy terminates TLS and forwards (e.g., HTTP to Keycloak)
+kc.proxy=edge
