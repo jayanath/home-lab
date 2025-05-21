@@ -6,3 +6,7 @@
   ansible.builtin.systemd:
     name: keycloak
     state: restarted
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
