@@ -24,7 +24,7 @@
     enabled: yes
 
 - name: Create Keycloak database
-  ansible.builtin.postgresql_db:
+  community.postgresql.postgresql_db:
     name: "{{ keycloak_db_name }}"
     state: present
     login_user: postgres # default postgres user
@@ -43,6 +43,16 @@
     roles: "{{ keycloak_db_user }}"
     privs: ALL
     type: database
+    state: present
+  become_user: postgres
+
+- name: Grant CREATE privilege on public schema to Keycloak user
+  community.postgresql.postgresql_privs:
+    db: "{{ keycloak_db_name }}"
+    schema: public
+    roles: "{{ keycloak_db_user }}"
+    privs: CREATE
+    type: schema
     state: present
   become_user: postgres
 
