@@ -5,13 +5,10 @@
 
 keycloak_version: "26.2.4" 
 keycloak_download_url: "https://github.com/keycloak/keycloak/releases/download/{{ keycloak_version }}/keycloak-{{ keycloak_version }}.tar.gz"
-keycloak_install_dir: "/opt"
-
+keycloak_install_dir: "/opt/keycloak-{{ keycloak_version }}"
+keycloak_symlink: "/opt/keycloak"
 keycloak_user: "keycloak"
 keycloak_group: "keycloak"
-
-keycloak_config_dir: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}/conf"
-keycloak_bin_dir: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}/bin"
 
 # Database Connection Details
 postgresql_lxc_ip: "192.168.193.60"
@@ -26,7 +23,6 @@ keycloak_db_username: "{{ keycloak_db_user }}"
 keycloak_admin_user: "admin"
 # keycloak_admin_password  is in the secrets.yml
 
-keycloak_hostname: "auth.jayforweb.com"
+keycloak_hostname: "keycloak.jayforweb.com"
 
 keycloak_http_port: 8080
-keycloak_https_port: 8443

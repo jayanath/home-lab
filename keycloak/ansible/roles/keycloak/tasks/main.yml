@@ -1,15 +1,9 @@
-# https://www.keycloak.org/getting-started/getting-started-zip
 ---
 # tasks file for keycloak role
 
 - name: Update apt cache
   ansible.builtin.apt:
     update_cache: yes
-
-- name: Install Java (OpenJDK) - Keycloak needs Java
-  ansible.builtin.apt:
-    name: openjdk-21-jre-headless
-    state: present
 
 - name: Create Keycloak group
   ansible.builtin.group:
@@ -22,74 +16,110 @@
     group: "{{ keycloak_group }}"
     system: yes
     shell: /sbin/nologin
-    create_home: no
     state: present
 
-- name: Download Keycloak
+- name: Install Java (OpenJDK) - Keycloak requirement
+  ansible.builtin.apt:
+    name: openjdk-21-jre-headless
+    state: present
+
+- name: Download Keycloak tarball
   ansible.builtin.get_url:
     url: "{{ keycloak_download_url }}"
     dest: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
     mode: '0644'
 
-- name: Ensure Keycloak install directory exists
-  ansible.builtin.file:
-    path: "{{ keycloak_install_dir }}"
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-
-- name: Extract Keycloak tar
+- name: Extract Keycloak tarball
   ansible.builtin.unarchive:
     src: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
     dest: "{{ keycloak_install_dir }}"
-    remote_src: yes
-    creates: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}"
+    remote_src: yes 
+    extra_opts: [--strip-components=1] # remove version named sub directory
+  args:
+    creates: "{{ keycloak_install_dir }}/bin/kc.sh"   
 
-- name: Set ownership of Keycloak installation directory
-  ansible.builtin.file:
-    path: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}"
+- name: Ensure symlink to active Keycloak version, this makes it easy to upgrade
+  file:
+    src: "{{ keycloak_install_dir }}"
+    dest: "{{ keycloak_symlink }}"
+    state: link
+    force: yes
+
+- name: Setup permissions
+  file:
+    path: "{{ item }}"
     owner: "{{ keycloak_user }}"
     group: "{{ keycloak_group }}"
     recurse: yes
+  loop:
+    - "{{ keycloak_install_dir }}"
 
-- name: Configure Keycloak database connection
+- name: Setup the config file
   ansible.builtin.template:
     src: keycloak.conf.j2
-    dest: "{{ keycloak_config_dir }}/keycloak.conf"
+    dest: "{{ keycloak_symlink }}/conf/keycloak.conf"
     owner: "{{ keycloak_user }}"
     group: "{{ keycloak_group }}"
     mode: '0640'
-  notify: Restart keycloak
+
+- name: Build Keycloak with DB vendor
+  become: yes
+  become_user: "{{ keycloak_user }}"
+  command: "{{ keycloak_symlink }}/bin/kc.sh build"
+  args:
+    chdir: "{{ keycloak_symlink }}"
 
 - name: Create Keycloak systemd service file
   ansible.builtin.template:
     src: keycloak.service.j2
     dest: "/etc/systemd/system/keycloak.service"
-    owner: root
-    group: root
     mode: '0644'
-  notify: Restart keycloak
+    become: yes
 
-- name: Reload systemd daemon
+- name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: yes
 
-- name: Set up initial Keycloak admin user
-  ansible.builtin.command: >
-    {{ keycloak_bin_dir }}/kc.sh create-admin
-    --username {{ keycloak_admin_user }}
-    --password {{ keycloak_admin_password }}
-  args:
-    chdir: "{{ keycloak_bin_dir }}"
-    creates: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}/data/keycloak-server.json" # check to see if admin exists
-  environment:
-    KC_ADMIN_USERNAME: "{{ keycloak_admin_user }}"
-    KC_ADMIN_PASSWORD: "{{ keycloak_admin_password }}"
+- name: Ensure systemd override directory exists
+  become: yes
+  file:
+    path: /etc/systemd/system/keycloak.service.d
+    state: directory
+    mode: '0755'
+    recurse: yes
 
-- name: Ensure Keycloak service is running and enabled
-  ansible.builtin.systemd:
+- name: Create systemd override with admin credentials
+  copy:
+    dest: /etc/systemd/system/keycloak.service.d/10-admin-bootstrap.conf
+    content: |
+      [Service]
+      Environment="KEYCLOAK_ADMIN={{ keycloak_admin_user }}"
+      Environment="KEYCLOAK_ADMIN_PASSWORD={{ keycloak_admin_password }}"
+  notify: Reload systemd
+
+- name: Enable and start Keycloak (first boot with admin)
+  systemd:
     name: keycloak
-    state: started
     enabled: yes
+    state: started
+
+- name: Wait for Keycloak to be ready
+  uri:
+    url: http://localhost:8080/health/ready
+    status_code: 200
+    timeout: 30
+  register: result
+  retries: 10
+  delay: 5
+  until: result.status == 200
+
+- name: Remove systemd admin bootstrap override
+  file:
+    path: /etc/systemd/system/keycloak.service.d/10-admin-bootstrap.conf
+    state: absent
+
+- name: Restart Keycloak without admin env vars
+  systemd:
+    name: keycloak
+    state: restarted
 
