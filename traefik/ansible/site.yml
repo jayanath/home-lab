@@ -13,7 +13,8 @@
       - dashboard.yml
       - pmox.yml
       - middlewares.yml
-      - redirect.yml     
+      - redirect.yml
+      - keycloak.yml     
 
   roles:
     - role: traefik

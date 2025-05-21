@@ -1,0 +1,17 @@
+http:
+  routers:
+    to-keycloak:
+      entryPoints:
+        - websecure
+      rule: "Host(`keycloak.jayforweb.com`)"
+      service: keycloak
+      tls:
+        certResolver: dnsresolver
+
+  services:
+    keycloak:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.193.70:8080"
+
+ 
