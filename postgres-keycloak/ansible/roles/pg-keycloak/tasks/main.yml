@@ -47,13 +47,9 @@
   become_user: postgres
 
 - name: Grant CREATE privilege on public schema to Keycloak user
-  community.postgresql.postgresql_privs:
+  community.postgresql.postgresql_query:
     db: "{{ keycloak_db_name }}"
-    schema: public
-    roles: "{{ keycloak_db_user }}"
-    privs: CREATE
-    type: schema
-    state: present
+    query: "GRANT CREATE ON SCHEMA public TO {{ keycloak_db_user }};"
   become_user: postgres
 
 - name: Configure PostgreSQL to listen on all network interfaces
