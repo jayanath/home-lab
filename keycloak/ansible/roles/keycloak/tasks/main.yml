@@ -65,7 +65,7 @@
 - name: Build Keycloak with DB vendor
   become: yes
   become_user: "{{ keycloak_user }}"
-  command: "{{ keycloak_symlink }}/bin/kc.sh build"
+  command: "{{ keycloak_symlink }}/bin/kc.sh build --health-enabled=true"
   args:
     chdir: "{{ keycloak_symlink }}"
 
@@ -75,10 +75,6 @@
     dest: "/etc/systemd/system/keycloak.service"
     mode: '0644'
     become: yes
-
-- name: Reload systemd
-  ansible.builtin.systemd:
-    daemon_reload: yes
 
 - name: Ensure systemd override directory exists
   become: yes
@@ -93,8 +89,8 @@
     dest: /etc/systemd/system/keycloak.service.d/10-admin-bootstrap.conf
     content: |
       [Service]
-      Environment="KEYCLOAK_ADMIN={{ keycloak_admin_user }}"
-      Environment="KEYCLOAK_ADMIN_PASSWORD={{ keycloak_admin_password }}"
+      Environment="KC_BOOTSTRAP_ADMIN_USERNAME={{ keycloak_admin_user }}"
+      Environment="KC_BOOTSTRAP_ADMIN_PASSWORD={{ keycloak_admin_password }}"
   notify: Reload systemd
 
 - name: Enable and start Keycloak (first boot with admin)
@@ -105,7 +101,7 @@
 
 - name: Wait for Keycloak to be ready
   uri:
-    url: http://localhost:8080/health/ready
+    url: "http://localhost:8080/health/ready"
     status_code: 200
     timeout: 30
   register: result
