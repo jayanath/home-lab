@@ -18,3 +18,37 @@ The playbooks can be found at {product}/ansible
 
 ```
 Refer to the README.md under each product for more detailed steps.
+
+
+# AWS IAM policy, if S3 bucket is used for remote state management.
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::jay-home-lab-tf-state",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": "proxmox/*/terraform.tfstate"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": [
+        "arn:aws:s3:::jay-home-lab-tf-state/proxmox/*/terraform.tfstate"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": [
+        "arn:aws:s3:::jay-home-lab-tf-state/proxmox/*/terraform.tfstate.tflock"
+      ]
+    }
+  ]
+}
+```
