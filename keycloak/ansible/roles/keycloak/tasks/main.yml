@@ -26,6 +26,14 @@
     group: root
     mode: '0755'
 
+- name: Create Keycloak log directory
+  ansible.builtin.file:
+    path: "/var/log/keycloak"
+    state: directory
+    owner: "{{ keycloak_user }}"
+    group: "{{ keycloak_group }}"
+    mode: '0755'
+
 - name: Install Java (OpenJDK) - Keycloak requirement
   ansible.builtin.apt:
     name: openjdk-21-jre-headless
