@@ -7,7 +7,7 @@ resource "proxmox_lxc" "postgres" {
   cpulimit     = "2"
   cores        = "2"
   swap         = "2048"
-  vmid         = 0 # Next available ID
+  vmid         = 110
   start        = true
   onboot       = true
   unprivileged = true
@@ -27,5 +27,11 @@ resource "proxmox_lxc" "postgres" {
     bridge = "vmbr0"
     ip     = "192.168.193.60/32"
     gw     = "192.168.193.1"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      rootfs
+    ]
   }
 }
