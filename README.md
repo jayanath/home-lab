@@ -20,7 +20,7 @@ The playbooks can be found at {product}/ansible
 Refer to the README.md under each product for more detailed steps.
 
 
-# AWS IAM policy, if S3 bucket is used for remote state management.
+#### AWS IAM policy, if S3 bucket is used for remote state management.
 ```
 {
   "Version": "2012-10-17",
