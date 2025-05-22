@@ -37,18 +37,22 @@
     state: present
   become_user: postgres
 
-- name: Grant privileges on Keycloak database
-  community.postgresql.postgresql_privs:
-    db: "{{ keycloak_db_name }}" 
-    roles: "{{ keycloak_db_user }}"
-    privs: ALL
-    type: database
-    state: present
+- name: Grant all privileges on Keycloak database to Keycloak user
+  community.postgresql.postgresql_query:
+    login_db: "{{ keycloak_db_name }}"
+    query: |
+      GRANT ALL PRIVILEGES ON DATABASE {{ keycloak_db_name }} TO {{ keycloak_db_user }};
+      GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {{ keycloak_db_user }};
+      GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {{ keycloak_db_user }};
+      GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO {{ keycloak_db_user }};
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO {{ keycloak_db_user }};
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO {{ keycloak_db_user }};
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO {{ keycloak_db_user }};
   become_user: postgres
 
 - name: Grant CREATE privilege on public schema to Keycloak user
   community.postgresql.postgresql_query:
-    db: "{{ keycloak_db_name }}"
+    login_db: "{{ keycloak_db_name }}"
     query: "GRANT CREATE ON SCHEMA public TO {{ keycloak_db_user }};"
   become_user: postgres
 
