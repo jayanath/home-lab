@@ -1,6 +1,7 @@
 # https://www.keycloak.org/guides#server
 
 hostname={{ keycloak_hostname }}
+hostname-url=https://{{ keycloak_hostname }}
 hostname-strict=true
 
 # Database configuration
@@ -20,5 +21,8 @@ log-file=/var/log/keycloak/keycloak.log
 # Required when running Keycloak behind a reverse proxy that terminates TLS
 # 'edge' is typically used when the proxy terminates TLS and forwards (e.g., HTTP to Keycloak)
 proxy=edge
+
+# Explicitly tell Keycloak to read X-Forwarded-* headers from the proxy
+proxy-headers=xforwarded
 
 http-enabled=true
