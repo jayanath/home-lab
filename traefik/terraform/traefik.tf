@@ -6,7 +6,7 @@ resource "proxmox_lxc" "traefik" {
   memory       = "2048"
   cpulimit     = "2"
   cores        = "2"
-  vmid         = 0 # Next available ID
+  vmid         = 101 # Next available ID
   start        = true
   onboot       = true
   unprivileged = true
@@ -26,5 +26,11 @@ resource "proxmox_lxc" "traefik" {
     bridge = "vmbr0"
     ip     = "192.168.193.50/32"
     gw     = "192.168.193.1"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      rootfs
+    ]
   }
 }

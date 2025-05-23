@@ -22,7 +22,7 @@ certificatesResolvers:
           - "8.8.8.8:53"
 
 log:
-  level: INFO
+  level: DEBUG
   format: common
 
 providers:
