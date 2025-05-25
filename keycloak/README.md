@@ -27,3 +27,8 @@ ansible-playbook site.yml -i inventory.ini --ask-vault-pass
 
 ```
 
+### Step 03 - Managing SSO for Homelab apps
+```
+ansible-playbook keycloak-apps-mgmt.yml -i inventory.ini --ask-vault-pass
+
+```
