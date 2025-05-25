@@ -1,0 +1,68 @@
+# Ansible playbook to configure and manage realms, clients, users, groups etc. 
+---
+- name: Manage Keycloak configurations for all the homelab applications
+  hosts: containers
+  become: true
+
+  vars_files:
+    - secrets.yml
+
+  tasks:
+    - name: Authenticate to Keycloak Admin CLI
+      # We need this to set up the .kcadm.config file for subsequent kcadm.sh commands
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" config credentials \
+          --server "http://localhost:8080/" \
+          --realm master \
+          --user "{{ keycloak_admin_user }}" \
+          --password "{{ keycloak_admin_password }}" \
+          --client-id admin-cli
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      changed_when: false # no change to the system state, just sets up auth
+      no_log: true # Stop the credentials leaking through the logs
+    
+    # We need a new realm for homelab apps and leave the master realm for keycloak specific stuff.
+    - name: Create the 'homelab' realm
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create realms -f - <<EOF
+        {
+          "realm": "homelab",
+          "enabled": true
+        }
+        EOF
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: create_homelab_realm
+      failed_when: "'already exists' not in create_homelab_realm.stderr and create_homelab_realm.rc != 0"
+      changed_when: create_homelab_realm.rc == 0 and 'Created realm' in create_homelab_realm.stdout
+
+    # --- Keycloak clients ------------
+    
+    # Proxmox client
+    - name: Ensure Proxmox VE client exists in 'homelab' realm
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create clients -r homelab -f - <<EOF
+        {
+          "clientId": "proxmox-ve",
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "secret": "{{ proxmox_keycloak_client_secret }}",
+          "redirectUris": [
+            "https://pmox.jayforweb.com:8006/"
+          ],
+          "webOrigins": [
+            "https://pmox.jayforweb.com:8006"
+          ],
+          "standardFlowEnabled": true,
+          "directAccessGrantsEnabled": false,
+          "serviceAccountsEnabled": false,
+          "fullScopeAllowed": true
+        }
+        EOF
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: create_proxmox_client
+      failed_when: "'already exists' not in create_proxmox_client.stderr and create_proxmox_client.rc != 0"
+      changed_when: create_proxmox_client.rc == 0 and 'Created client' in create_proxmox_client.stdout
+      no_log: true    
