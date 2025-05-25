@@ -7,6 +7,13 @@
   vars_files:
     - secrets.yml
 
+  vars:
+    # We need to define variables specific for this playbook as it runs its own show without the role ;-)
+    keycloak_version: "26.2.4"
+    keycloak_install_dir: "/opt/keycloak-{{ keycloak_version }}"
+    keycloak_symlink: "/opt/keycloak"
+    keycloak_admin_user: "admin"    
+
   tasks:
     - name: Authenticate to Keycloak Admin CLI
       # We need this to set up the .kcadm.config file for subsequent kcadm.sh commands
@@ -16,7 +23,7 @@
           --realm master \
           --user "{{ keycloak_admin_user }}" \
           --password "{{ keycloak_admin_password }}" \
-          --client-id admin-cli
+          --client admin-cli
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       changed_when: false # no change to the system state, just sets up auth
