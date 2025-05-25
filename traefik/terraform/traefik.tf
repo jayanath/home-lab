@@ -24,7 +24,7 @@ resource "proxmox_lxc" "traefik" {
   network {
     name   = "eth0"
     bridge = "vmbr0"
-    ip     = "192.168.193.50/32"
+    ip     = "192.168.193.50/24"
     gw     = "192.168.193.1"
   }
 

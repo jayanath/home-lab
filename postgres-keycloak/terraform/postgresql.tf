@@ -25,7 +25,7 @@ resource "proxmox_lxc" "postgres" {
   network {
     name   = "eth0"
     bridge = "vmbr0"
-    ip     = "192.168.193.60/32"
+    ip     = "192.168.193.60/24"
     gw     = "192.168.193.1"
   }
 
