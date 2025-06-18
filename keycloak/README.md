@@ -27,8 +27,13 @@ ansible-playbook site.yml -i inventory.ini --ask-vault-pass
 
 ```
 
-### Step 03 - Managing SSO for Homelab apps
+### Step 03 - Create Keycloak Realm for Homelab apps. 
 ```
-ansible-playbook keycloak-apps-mgmt.yml -i inventory.ini --ask-vault-pass
+ansible-playbook keycloak-realm-mgmt.yml -i inventory.ini --ask-vault-pass
 
+```
+
+### Step 04 - Integrate apps with Keycloak.
+```
+ansible-playbook keycloak-pmox-integration.yml -i inventory.ini --ask-vault-pass
 ```

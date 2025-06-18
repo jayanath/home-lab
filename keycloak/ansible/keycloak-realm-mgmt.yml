@@ -1,0 +1,42 @@
+# Playbook to manage Keycloak Realms
+---
+- name: Configure Keycloak Realms
+  hosts: containers
+  become: true
+
+  vars_files:
+    - secrets.yml
+
+  vars:
+    keycloak_version: "26.2.4"
+    keycloak_symlink: "/opt/keycloak"
+    keycloak_admin_user: "admin"
+    keycloak_realm_name: "homelab"
+
+  tasks:
+    - name: Authenticate to Keycloak Admin CLI
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" config credentials \
+          --server "http://localhost:8080/" \
+          --realm master \
+          --user "{{ keycloak_admin_user }}" \
+          --password "{{ keycloak_admin_password }}" \
+          --client admin-cli
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      changed_when: false
+      no_log: true
+
+    - name: Create the 'homelab' realm
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create realms -f - <<EOF
+        {
+          "realm": "{{ keycloak_realm_name }}",
+          "enabled": true
+        }
+        EOF
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: create_homelab_realm
+      failed_when: "'already exists' not in create_homelab_realm.stderr and create_homelab_realm.rc != 0"
+      changed_when: create_homelab_realm.rc == 0 and 'Created realm' in create_homelab_realm.stdout

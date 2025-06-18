@@ -38,4 +38,4 @@ Check the DB service status with `systemctl status postgresql`
 
 Check if the DB service is listening in the expected `5432` port using `ss -nutpl | grep postgres`
 
-Try loging into the DB using `-u postgres psql -d keycloak -U keycloakuser -h localhost` and providing the password at the prompt
+Try loging into the DB using `sudo -u postgres psql -d keycloak -U keycloakuser -h localhost` and providing the password at the prompt
