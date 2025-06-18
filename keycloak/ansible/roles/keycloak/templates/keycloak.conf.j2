@@ -14,7 +14,7 @@ db-url-host={{ postgresql_lxc_ip }}
 
 # Logging
 log=console,file
-log-level=INFO
+log-level=info,org.keycloak.protocol.oidc:debug,org.keycloak.events:debug,org.keycloak.forms:debug
 log-file=/var/log/keycloak/keycloak.log
 
 # Proxy configuration
