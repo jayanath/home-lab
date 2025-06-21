@@ -1,6 +1,10 @@
 # How to deploy Keycloak
 
-### Step 01 - Deploy a new LXC container 
+### Step 01 - Deploy PostgreSQL
+
+Use `../postgres-keycloak` to deploy and configure `postgreSQL` for `Keycloak`   
+
+### Step 02 - Deploy a new LXC container 
 ```
 Update the tf_backend.hcl with S3 bucket info
 Update the versions.tf with proxmox path
@@ -16,7 +20,7 @@ terraform plan
 terraform apply
 
 ```
-### Step 02 - Install and configure Keycloak
+### Step 03 - Install and configure Keycloak
 
 ```
 Update the inventory.ini with host information
@@ -27,13 +31,20 @@ ansible-playbook site.yml -i inventory.ini --ask-vault-pass
 
 ```
 
-### Step 03 - Create Keycloak Realm for Homelab apps. 
+## Integrate Applications with Keycloak
+
+### Create a new Keycloak Realm
+The `keycloak-realm-mgmt.yml` playbook is used to configure a new realm for the homelab apps to leave the `master` realm alone. 
+
 ```
 ansible-playbook keycloak-realm-mgmt.yml -i inventory.ini --ask-vault-pass
 
 ```
 
-### Step 04 - Integrate apps with Keycloak.
+### Integrate Apps with Keycloak.
+A separate playbook for each application integration to keep things manageable.
+
+- Proxmox
 ```
 ansible-playbook keycloak-pmox-integration.yml -i inventory.ini --ask-vault-pass
 ```
