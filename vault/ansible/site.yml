@@ -5,8 +5,8 @@
   gather_facts: yes
   become: yes
 
-  vars:
-    vault_version: "1.20.0"
+  vars_files:
+    - secrets.yml
 
   roles:
     - role: vault
