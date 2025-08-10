@@ -27,7 +27,10 @@
     owner: "{{ vault_user }}"
     group: "{{ vault_group }}"
     mode: '0600'
-  when: vault_init_result is defined and vault_init_result.json is defined
+  when: 
+    - not vault_init_result.skipped | default(false)
+    - vault_init_result is defined
+    - vault_init_result.json is defined
 
 - name: Unseal Vault
   ansible.builtin.uri:
@@ -36,7 +39,15 @@
     body_format: json
     body:
       key: "{{ vault_init_result.json.keys[0] }}"
-  when: vault_init_result is defined and vault_init_result.json is defined
+  when: 
+    - not vault_init_result.skipped | default(false)
+    - vault_init_result is defined
+    - vault_init_result.json is defined
+
+- name: Check if keys file exists (for already initialized Vault)
+  stat:
+    path: "/opt/vault/vault-keys.txt"
+  register: vault_keys_file
 
 - name: Create auto-unseal script
   ansible.builtin.template:
@@ -60,3 +71,24 @@
     name: vault-unseal
     enabled: yes
     daemon_reload: yes
+
+- name: Start vault-unseal service if keys exist
+  systemd:
+    name: vault-unseal
+    state: started
+  when: vault_keys_file.stat.exists
+
+- name: Display initialization status
+  debug:
+    msg: |
+      {% if not vault_init_status.json.initialized and vault_init_result is defined %}
+      Vault has been initialized successfully!
+      Root token and unseal key saved to /opt/vault/vault-keys.txt
+      {% else %}
+      Vault was already initialized.
+      {% if vault_keys_file.stat.exists %}
+      Keys file exists at /opt/vault/vault-keys.txt
+      {% else %}
+      WARNING: Keys file not found! You may need to manually manage unsealing.
+      {% endif %}
+      {% endif %}
