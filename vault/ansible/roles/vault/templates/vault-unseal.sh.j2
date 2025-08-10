@@ -1,0 +1,33 @@
+#!/bin/bash
+
+VAULT_ADDR="http://localhost:{{ vault_port }}"
+KEYS_FILE="/opt/vault/vault-keys.txt"
+
+# Wait for Vault to be ready
+while ! curl -s ${VAULT_ADDR}/v1/sys/health > /dev/null; do
+    sleep 2
+done
+
+# Check if Vault is sealed
+SEALED=$(curl -s ${VAULT_ADDR}/v1/sys/health | jq -r '.sealed // true')
+
+if [ "$SEALED" = "true" ]; then
+    if [ -f "$KEYS_FILE" ]; then
+        UNSEAL_KEY=$(grep "Unseal Key:" "$KEYS_FILE" | cut -d' ' -f3)
+        if [ -n "$UNSEAL_KEY" ]; then
+            curl -s -X POST \
+                -H "Content-Type: application/json" \
+                -d "{\"key\":\"$UNSEAL_KEY\"}" \
+                ${VAULT_ADDR}/v1/sys/unseal > /dev/null
+            echo "Vault unsealed successfully"
+        else
+            echo "Unseal key not found in $KEYS_FILE"
+            exit 1
+        fi
+    else
+        echo "Keys file not found: $KEYS_FILE"
+        exit 1
+    fi
+else
+    echo "Vault is already unsealed"
+fi

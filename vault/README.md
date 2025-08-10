@@ -30,7 +30,5 @@ ansible-playbook site.yml -i inventory.ini --ask-vault-pass
 ## Integrate Vault with Traefik and Keycloak
 
 ### Integrate Vault with Keycloak.
-
-```
-ansible-playbook keycloak-vault-integration.yml -i inventory.ini --ask-vault-pass
-```
+- Drop in the new configs to traefik and restart the service ( it should pick up even without restart though)
+- Keycloak needs more work

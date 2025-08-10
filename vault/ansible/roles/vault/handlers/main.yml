@@ -1,0 +1,13 @@
+
+---
+# handlers file for vault
+
+- name: restart vault 
+  ansible.builtin.systemd:
+    name: vault.service
+    state: restarted
+
+- name: reload vault 
+  ansible.builtin.systemd:
+    name: vault.service
+    state: reloaded

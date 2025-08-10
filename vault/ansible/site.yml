@@ -1,0 +1,13 @@
+# Ansible playbook to configure traefik
+---
+- name: Deploy and Configure Vault LXC Container
+  hosts: vault_lxc
+  gather_facts: yes
+  become: yes
+
+  vars:
+    vault_version: "1.20.0"
+
+  roles:
+    - role: vault
+ 

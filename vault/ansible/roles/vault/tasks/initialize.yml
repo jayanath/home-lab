@@ -1,0 +1,62 @@
+---
+# Initialize the vault
+
+- name: Check if Vault is initialized
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/init"
+    method: GET
+  register: vault_init_status
+
+- name: Initialize Vault if not already initialized
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/init"
+    method: POST
+    body_format: json
+    body:
+      secret_shares: "{{ vault_init_secret_shares }}"
+      secret_threshold: "{{ vault_init_secret_threshold }}"
+  register: vault_init_result
+  when: not vault_init_status.json.initialized
+
+- name: Save Vault keys securely
+  ansible.builtin.copy:
+    content: |
+      Root Token: {{ vault_init_result.json.root_token }}
+      Unseal Key: {{ vault_init_result.json.keys[0] }}
+    dest: "/opt/vault/vault-keys.txt"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: '0600'
+  when: vault_init_result is defined and vault_init_result.json is defined
+
+- name: Unseal Vault
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/unseal"
+    method: POST
+    body_format: json
+    body:
+      key: "{{ vault_init_result.json.keys[0] }}"
+  when: vault_init_result is defined and vault_init_result.json is defined
+
+- name: Create auto-unseal script
+  ansible.builtin.template:
+    src: vault-unseal.sh.j2
+    dest: "/opt/vault/vault-unseal.sh"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: '0750'
+
+- name: Create auto-unseal service
+  ansible.builtin.template:
+    src: vault-unseal.service.j2
+    dest: /etc/systemd/system/vault-unseal.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: reload systemd
+
+- name: Enable vault-unseal service
+  ansible.builtin.systemd:
+    name: vault-unseal
+    enabled: yes
+    daemon_reload: yes

@@ -1,0 +1,64 @@
+---
+# Allow the Keycloak integration.
+
+- name: Wait for Vault to be unsealed
+  uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/health"
+    method: GET
+  register: vault_health
+  until: vault_health.json.sealed == false
+  retries: 10
+  delay: 3
+
+- name: Get root token from file if not in memory
+  slurp:
+    src: "/opt/vault/vault-keys.txt"
+  register: vault_keys_content
+  when: vault_init_result is not defined
+
+- name: Extract root token from file
+  set_fact:
+    vault_root_token: "{{ (vault_keys_content.content | b64decode | regex_search('Root Token: (.+)', '\\1'))[0] }}"
+  when: vault_keys_content is defined
+
+- name: Set root token from initialization
+  set_fact:
+    vault_root_token: "{{ vault_init_result.json.root_token }}"
+  when: vault_init_result is defined and vault_init_result.json is defined
+
+- name: Enable OIDC authentication method
+  uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/auth/oidc"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      type: "oidc"
+    status_code: [200, 204, 400]  # 400 if already enabled
+
+- name: Configure OIDC authentication
+  uri:
+    url: "http://localhost:{{ vault_port }}/v1/auth/oidc/config"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      oidc_discovery_url: "{{ keycloak_url }}/realms/{{ keycloak_realm }}"
+      oidc_client_id: "{{ keycloak_client_id }}"
+      oidc_client_secret: "{{ keycloak_client_secret }}"
+      default_role: "default"
+
+- name: Create default OIDC role
+  uri:
+    url: "http://localhost:{{ vault_port }}/v1/auth/oidc/role/default"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      bound_audiences: ["{{ keycloak_client_id }}"]
+      allowed_redirect_uris: ["https://{{ vault_domain }}/ui/vault/auth/oidc/oidc/callback"]
+      user_claim: "sub"
+      policies: ["default"]
