@@ -1,0 +1,22 @@
+http:
+  routers:
+    to-vault:
+      entryPoints:
+        - websecure
+      rule: "Host(`vault.jayforweb.com`)"
+      service: vault
+      tls:
+        certResolver: dnsresolver
+      middlewares:
+        - vault-headers
+        
+  services:
+    vault:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.193.80:8200"
+        healthCheck:
+          path: "/v1/sys/health"
+          interval: "30s"
+          timeout: "5s"
+ 
