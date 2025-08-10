@@ -1,11 +1,9 @@
 ---
 # Install and configure vault
 
----
 - name: Update package cache
   ansible.builtin.apt:
     update_cache: yes
-    cache_valid_time: 3600
 
 - name: Install required packages
   ansible.builtin.apt:
@@ -18,25 +16,26 @@
       - lsb-release
     state: present
 
-- name: Add HashiCorp GPG key
-  ansible.builtin.apt_key:
-    url: https://apt.releases.hashicorp.com/gpg
-    keyring: /usr/share/keyrings/hashicorp-archive-keyring.gpg
-    state: present
+# official doco to get the exact code. https://developer.hashicorp.com/vault/install#linux
+- name: Download and install HashiCorp GPG key
+  ansible.builtin.shell: |
+    wget -O - https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/hashicorp-archive-keyring.gpg
 
 - name: Add HashiCorp APT repository
-  ansible.builtin.apt_repository:
-    repo: "deb [arch={{ ansible_architecture }} signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
-    state: present
-    filename: hashicorp
+  ansible.builtin.shell: |
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
+  args:
+    creates: /etc/apt/sources.list.d/hashicorp.list
 
-- name: Update package cache after adding repository
+- name: Update package cache
   ansible.builtin.apt:
     update_cache: yes
 
-- name: Install Vault from HashiCorp repository
+- name: Install Vault
   ansible.builtin.apt:
-    name: vault
+    name: "vault={{ vault_version }}"
     state: present
 
 - name: Create vault directories

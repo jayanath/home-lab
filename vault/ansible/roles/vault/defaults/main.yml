@@ -2,7 +2,7 @@
 ---
 # defaults file for Vault
 domain_name: "jayforweb.com"
-vault_version: "1.20.0" # Let's peg it here.
+vault_version: "1.20.2-1" # Let's peg it here.
 vault_port: 8200
 vault_user: vault
 vault_group: vault
