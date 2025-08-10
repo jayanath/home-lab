@@ -1,0 +1,15 @@
+[Unit]
+Description=Vault Auto Unseal
+After=vault.service
+Requires=vault.service
+
+[Service]
+Type=oneshot
+User={{ vault_user }}
+Group={{ vault_group }}
+ExecStart=/opt/vault/vault-unseal.sh
+RemainAfterExit=yes
+EnvironmentFile={{ vault_config_dir }}/vault.env
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,26 @@
+
+---
+# defaults file for Vault
+domain_name: "jayforweb.com"
+vault_version: "1.20.0" # Let's peg it here.
+vault_port: 8200
+vault_user: vault
+vault_group: vault
+vault_data_dir: /opt/vault/data
+vault_config_dir: /etc/vault.d
+vault_log_dir: /var/log/vault
+vault_domain: "vault.{{ domain_name }}"
+
+# Keycloak integration
+keycloak_url: "https://keycloak.{{ domain_name }}"
+keycloak_realm: "homelab"
+keycloak_client_id: "vault"
+keycloak_client_secret: "{{ vault_keycloak_client_secret }}"
+
+# Auto-unseal configuration
+vault_auto_unseal: true
+vault_init_secret_shares: 1
+vault_init_secret_threshold: 1
+
+# TLS Configuration
+vault_tls_disable: true  # TLS terminated at traefik
