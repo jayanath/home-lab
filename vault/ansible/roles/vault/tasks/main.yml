@@ -105,5 +105,5 @@
 - include_tasks: initialize.yml
   when: vault_auto_unseal
 
-- include_tasks: keycloak_integration.yml
+- include_tasks: keycloak-integration.yml
   when: keycloak_client_secret is defined

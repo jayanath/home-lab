@@ -2,7 +2,7 @@
 # Allow the Keycloak integration.
 
 - name: Wait for Vault to be unsealed
-  uri:
+  ansible.builtin.uri:
     url: "http://localhost:{{ vault_port }}/v1/sys/health"
     method: GET
   register: vault_health
@@ -11,23 +11,23 @@
   delay: 3
 
 - name: Get root token from file if not in memory
-  slurp:
+  ansible.builtin.slurp:
     src: "/opt/vault/vault-keys.txt"
   register: vault_keys_content
-  when: vault_init_result is not defined
+  when: vault_init_result is not defined or vault_init_result.skipped | default(false)
 
 - name: Extract root token from file
-  set_fact:
+  ansible.builtin.set_fact:
     vault_root_token: "{{ (vault_keys_content.content | b64decode | regex_search('Root Token: (.+)', '\\1'))[0] }}"
-  when: vault_keys_content is defined
+  when: vault_keys_content is defined and vault_keys_content.content is defined
 
 - name: Set root token from initialization
-  set_fact:
-    vault_root_token: "{{ vault_init_result.json.root_token }}"
-  when: vault_init_result is defined and vault_init_result.json is defined
+  ansible.builtin.set_fact:
+    vault_root_token: "{{ vault_init_result.json['root_token'] }}"
+  when: vault_init_result is defined and not (vault_init_result.skipped | default(false)) and vault_init_result.json is defined
 
 - name: Enable OIDC authentication method
-  uri:
+  ansible.builtin.uri:
     url: "http://localhost:{{ vault_port }}/v1/sys/auth/oidc"
     method: POST
     headers:
@@ -38,7 +38,7 @@
     status_code: [200, 204, 400]  # 400 if already enabled
 
 - name: Configure OIDC authentication
-  uri:
+  ansible.builtin.uri:
     url: "http://localhost:{{ vault_port }}/v1/auth/oidc/config"
     method: POST
     headers:
@@ -49,9 +49,10 @@
       oidc_client_id: "{{ keycloak_client_id }}"
       oidc_client_secret: "{{ keycloak_client_secret }}"
       default_role: "default"
+    status_code: [200, 204]
 
 - name: Create default OIDC role
-  uri:
+  ansible.builtin.uri:
     url: "http://localhost:{{ vault_port }}/v1/auth/oidc/role/default"
     method: POST
     headers:
@@ -62,3 +63,4 @@
       allowed_redirect_uris: ["https://{{ vault_domain }}/ui/vault/auth/oidc/oidc/callback"]
       user_claim: "sub"
       policies: ["default"]
+    status_code: [200, 204]
