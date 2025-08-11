@@ -14,7 +14,8 @@
       - pmox.yml
       - middlewares.yml
       - redirect.yml
-      - keycloak.yml     
+      - keycloak.yml
+      - vault.yml     
 
   roles:
     - role: traefik
