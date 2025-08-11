@@ -18,19 +18,22 @@
   register: vault_init_result
   when: not vault_init_status.json.initialized
 
+- name: Set facts for keys and token
+  ansible.builtin.set_fact:
+    unseal_keys: "{{ vault_init_result.json['keys'] }}"
+    root_token: "{{ vault_init_result.json['root_token'] }}"
+  when: not vault_init_result.skipped | default(false) and vault_init_result.json['keys'] is defined and vault_init_result.json['root_token'] is defined
+
 - name: Save Vault keys securely
   ansible.builtin.copy:
     content: |
-      Root Token: {{ vault_init_result.json.root_token }}
-      Unseal Key: {{ vault_init_result.json.keys[0] }}
+      Root Token: {{ root_token }}
+      Unseal Key: {{ unseal_keys[0] }}
     dest: "/opt/vault/vault-keys.txt"
     owner: "{{ vault_user }}"
     group: "{{ vault_group }}"
     mode: '0600'
-  when: 
-    - not vault_init_result.skipped | default(false)
-    - vault_init_result is defined
-    - vault_init_result.json is defined
+  when: unseal_keys is defined and unseal_keys | length > 0
 
 - name: Unseal Vault
   ansible.builtin.uri:
@@ -38,14 +41,11 @@
     method: POST
     body_format: json
     body:
-      key: "{{ vault_init_result.json.keys[0] }}"
-  when: 
-    - not vault_init_result.skipped | default(false)
-    - vault_init_result is defined
-    - vault_init_result.json is defined
+      key: "{{ unseal_keys[0] }}"
+  when: unseal_keys is defined and unseal_keys | length > 0
 
 - name: Check if keys file exists (for already initialized Vault)
-  stat:
+  ansible.builtin.stat:
     path: "/opt/vault/vault-keys.txt"
   register: vault_keys_file
 
@@ -73,13 +73,13 @@
     daemon_reload: yes
 
 - name: Start vault-unseal service if keys exist
-  systemd:
+  ansible.builtin.systemd:
     name: vault-unseal
     state: started
   when: vault_keys_file.stat.exists
 
 - name: Display initialization status
-  debug:
+  ansible.builtin.debug:
     msg: |
       {% if not vault_init_status.json.initialized and vault_init_result is defined %}
       Vault has been initialized successfully!
