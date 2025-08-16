@@ -48,3 +48,7 @@ A separate playbook for each application integration to keep things manageable.
 ```
 ansible-playbook keycloak-pmox-integration.yml -i inventory.ini --ask-vault-pass
 ```
+- Vault
+```
+ansible-playbook keycloak-vault-integration.yml -i inventory.ini --ask-vault-pass
+```
