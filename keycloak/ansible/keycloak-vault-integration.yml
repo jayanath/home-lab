@@ -20,7 +20,7 @@
 
     # User and Group details
     vault_admin_username: "vault-admin"
-    vault_admin_email: "jayanath@gmail.com"
+    vault_admin_email: "vault-admin@jayforweb.com"
     vault_admin_first_name: "Jay"
     vault_admin_last_name: "Amaranayake"
     vault_group_name: "vault-admins"
@@ -44,7 +44,7 @@
 
     # --- Keycloak clients --------
     
-    - name: Ensure vault VE client exists in 'homelab' realm
+    - name: Ensure vault client exists in 'homelab' realm
       ansible.builtin.shell: |
         "{{ keycloak_symlink }}/bin/kcadm.sh" create clients -r {{ keycloak_realm_name }} -f - <<EOF
         {
@@ -83,7 +83,7 @@
       changed_when: create_vault_client.rc == 0 and 'Created client' in create_vault_client.stdout
       no_log: false
 
-    - name: Get vault VE client internal ID
+    - name: Get vault client internal ID
       ansible.builtin.shell: |
         "{{ keycloak_symlink }}/bin/kcadm.sh" get clients -r {{ keycloak_realm_name }} -q exact=true -q clientId={{ keycloak_vault_client_id }} --fields id --format csv --noquotes
       args:
@@ -91,13 +91,13 @@
       register: vault_client_id_query
       changed_when: false
 
-    - name: Set fact for vault VE client internal ID
+    - name: Set fact for vault client internal ID
       ansible.builtin.set_fact:
-        vault_ve_client_internal_id: "{{ vault_client_id_query.stdout }}"
+        vault_client_internal_id: "{{ vault_client_id_query.stdout }}"
 
-    - name: Ensure 'vault-admins-group-mapper' exists for 'vault-ve' client
+    - name: Ensure 'vault-admins-group-mapper' exists for 'vault' client
       ansible.builtin.shell: |
-        "{{ keycloak_symlink }}/bin/kcadm.sh" create clients/{{ vault_ve_client_internal_id }}/protocol-mappers/models -r {{ keycloak_realm_name }} -f - <<EOF
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create clients/{{ vault_client_internal_id }}/protocol-mappers/models -r {{ keycloak_realm_name }} -f - <<EOF
         {
           "name": "{{ vault_group_membership_mapper_name }}",
           "protocol": "openid-connect",
@@ -138,7 +138,16 @@
 
     # --- Keycloak Users ------------
 
-    - name: Ensure 'vault-admin' user exists in 'homelab' realm
+    - name: Check if 'vault-admin' user exists in 'homelab' realm
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" get users -r {{ keycloak_realm_name }} -q exact=true -q username={{ vault_admin_username }} --fields id --format csv --noquotes
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: vault_admin_user_exists_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create 'vault-admin' user in 'homelab' realm if it doesn't exist
       ansible.builtin.shell: |
         "{{ keycloak_symlink }}/bin/kcadm.sh" create users -r {{ keycloak_realm_name }} -f - <<EOF
         {
@@ -153,7 +162,7 @@
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       register: create_vault_admin_user
-      failed_when: "'User exists with same email' not in create_vault_admin_user.stderr and create_vault_admin_user.rc != 0"
+      when: vault_admin_user_exists_check.stdout == ""
       changed_when: create_vault_admin_user.rc == 0 and 'Created user' in create_vault_admin_user.stdout
 
     - name: Set initial password for 'vault-admin' user
@@ -161,7 +170,7 @@
         "{{ keycloak_symlink }}/bin/kcadm.sh" set-password -r {{ keycloak_realm_name }} --username {{ vault_admin_username }} --new-password "{{ vault_admin_password }}"
       args:
         chdir: "{{ keycloak_symlink }}/bin"
-      no_log: false
+      no_log: true
       changed_when: false
 
     - name: Get 'vault-admin' user internal ID
