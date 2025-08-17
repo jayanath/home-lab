@@ -27,8 +27,12 @@ ansible-playbook site.yml -i inventory.ini --ask-vault-pass
 
 ```
 
-## Integrate Vault with Traefik and Keycloak
+### Step 03 - Integrate Vault with Traefik
+- Run Traefik playbook to deploy the vault routes.
+- Make sure to update DNS records accordingly. In my case I update pfSense and Adguard.
 
-### Integrate Vault with Keycloak.
-- Drop in the new configs to traefik and restart the service ( it should pick up even without restart though)
-- Keycloak needs more work
+### Step 04 - Integrate Vault with Keycloak
+- Run keycloak-vault-integration playbook to add Vault client
+```
+ansible-playbook keycloak-vault-integration.yml -i inventory.ini --ask-vault-pass
+```
