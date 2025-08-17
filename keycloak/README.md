@@ -44,11 +44,11 @@ ansible-playbook keycloak-realm-mgmt.yml -i inventory.ini --ask-vault-pass
 ### Integrate Apps with Keycloak.
 A separate playbook for each application integration to keep things manageable.
 
-- Proxmox
+#### Proxmox
 ```
 ansible-playbook keycloak-pmox-integration.yml -i inventory.ini --ask-vault-pass
 ```
-- Vault
+#### Vault
 ```
 ansible-playbook keycloak-vault-integration.yml -i inventory.ini --ask-vault-pass
 ```
