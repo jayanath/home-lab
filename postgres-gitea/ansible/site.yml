@@ -1,0 +1,10 @@
+# Ansible playbook to configure Postgresql for Gitea
+---
+- name: Deploy and Configure Postgresql LXC Container
+  hosts: pg_gitea_lxc
+  gather_facts: yes
+  become: yes
+
+  roles:
+    - role: pg-gitea
+ 

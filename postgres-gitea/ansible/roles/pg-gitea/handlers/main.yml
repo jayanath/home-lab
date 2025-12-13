@@ -1,0 +1,13 @@
+
+---
+# handlers file for pg-gitea role
+
+- name: restart postgresql
+  ansible.builtin.systemd:
+    name: postgresql
+    state: restarted
+
+- name: reload postgresql
+  ansible.builtin.systemd:
+    name: postgresql
+    state: reloaded
