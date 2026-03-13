@@ -171,10 +171,26 @@
     - gitea_oauth2_enabled
     - gitea_oauth2_provider_name not in gitea_auth_list.stdout
 
+- name: Get Keycloak auth source ID
+  ansible.builtin.shell:
+    cmd: >
+      {{ gitea_bin_path }} admin auth list
+      --config {{ gitea_config_file }} |
+      awk '/{{ gitea_oauth2_provider_name }}/ {print $1}'
+  become_user: "{{ gitea_user }}"
+  environment:
+    GITEA_WORK_DIR: "{{ gitea_work_dir }}"
+  register: gitea_oauth2_source_id
+  changed_when: false
+  when:
+    - gitea_oauth2_enabled
+    - gitea_oauth2_provider_name in gitea_auth_list.stdout
+
 - name: Update Keycloak OAuth2 provider if it exists
   ansible.builtin.command:
     cmd: >
       {{ gitea_bin_path }} admin auth update-oauth
+      --id {{ gitea_oauth2_source_id.stdout | trim }}
       --name {{ gitea_oauth2_provider_name }}
       --provider openidConnect
       --key {{ gitea_oauth2_client_id }}
