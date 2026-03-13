@@ -1,0 +1,50 @@
+; Gitea configuration file
+; Managed by Ansible — do not edit manually
+
+APP_NAME  = Gitea
+RUN_USER  = {{ gitea_user }}
+RUN_MODE  = prod
+WORK_PATH = {{ gitea_work_dir }}
+
+[server]
+DOMAIN                        = {{ gitea_http_domain }}
+HTTP_ADDR                     = {{ gitea_http_listen_host }}
+HTTP_PORT                     = {{ gitea_http_port }}
+ROOT_URL                      = {{ gitea_root_url }}
+SSH_DOMAIN                    = {{ gitea_ssh_domain }}
+SSH_PORT                      = {{ gitea_ssh_port }}
+DISABLE_SSH                   = {{ gitea_disable_ssh | lower }}
+START_SSH_SERVER              = false
+REVERSE_PROXY_LIMIT           = 1
+REVERSE_PROXY_TRUSTED_PROXIES = *
+
+[database]
+DB_TYPE  = {{ gitea_db_type }}
+HOST     = {{ gitea_db_host }}
+NAME     = {{ gitea_db_name }}
+USER     = {{ gitea_db_user }}
+PASSWD   = {{ gitea_db_password }}
+SSL_MODE = {{ gitea_db_ssl_mode }}
+
+[repository]
+ROOT = {{ gitea_repo_root }}
+
+[security]
+INSTALL_LOCK   = {{ gitea_install_lock | lower }}
+SECRET_KEY     = {{ gitea_secret_key }}
+INTERNAL_TOKEN = {{ gitea_internal_token }}
+JWT_SECRET     = {{ gitea_jwt_secret }}
+
+[service]
+DISABLE_REGISTRATION       = {{ gitea_disable_registration | lower }}
+REQUIRE_SIGNIN_VIEW        = {{ gitea_require_signin_view | lower }}
+DEFAULT_KEEP_EMAIL_PRIVATE = {{ gitea_default_keep_email_private | lower }}
+
+[log]
+MODE      = {{ gitea_log_mode }}
+LEVEL     = {{ gitea_log_level }}
+ROOT_PATH = {{ gitea_log_root_path }}
+
+[oauth2]
+ENABLED    = true
+JWT_SECRET = {{ gitea_jwt_secret }}
