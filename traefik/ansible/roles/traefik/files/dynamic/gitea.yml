@@ -1,0 +1,21 @@
+http:
+  routers:
+    to-gitea:
+      entryPoints:
+        - websecure
+      rule: "Host(`gitea.jayforweb.com`)"
+      service: gitea
+      tls:
+        certResolver: dnsresolver
+      middlewares:
+        - gitea-headers
+
+  services:
+    gitea:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.193.100:3000"
+        healthCheck:
+          path: "/"
+          interval: "30s"
+          timeout: "5s"
