@@ -48,7 +48,12 @@ systemctl status gitea
 # Check if service is listening on port 3000
 ss -tlnp | grep 3000
 
-# Hit HTTP endpoint from the container iteslf
-curl -I http://localhost:3000
+```
 
+### Step 07 - Post deployment
+Once the first admin user is registered, update the defaults/main.yml to avoid automatic user registration for better security.
+```
+gitea_disable_registration: true
+gitea_require_signin_view: true
+Rerun the playbook ansible-playbook site.yml -i inventory.ini --ask-vault-pass
 ```

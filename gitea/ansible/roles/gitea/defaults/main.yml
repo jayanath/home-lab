@@ -50,8 +50,8 @@ gitea_log_level: Info
 gitea_log_root_path: "{{ gitea_work_dir }}/log"
 
 # app.ini - Service
-gitea_disable_registration: false
-gitea_require_signin_view: false
+gitea_disable_registration: true
+gitea_require_signin_view: true
 gitea_default_keep_email_private: true
 
 # Keycloak OAuth2
