@@ -52,3 +52,7 @@ ansible-playbook keycloak-pmox-integration.yml -i inventory.ini --ask-vault-pass
 ```
 ansible-playbook keycloak-vault-integration.yml -i inventory.ini --ask-vault-pass
 ```
+#### Gitea
+```
+ansible-playbook keycloak-gitea-integration.yml -i inventory.ini --ask-vault-pass
+```
