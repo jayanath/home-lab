@@ -1,0 +1,200 @@
+# Playbook to configure and manage Keycloak integration for Gitea.
+---
+- name: Manage Keycloak configurations for Gitea
+  hosts: containers
+  become: true
+
+  vars_files:
+    - secrets.yml
+
+  vars:
+    keycloak_version: "26.2.4"
+    keycloak_symlink: "/opt/keycloak"
+    keycloak_admin_user: "admin"
+    keycloak_realm_name: "homelab"
+
+    # Gitea client details
+    keycloak_gitea_client_id: "gitea"
+    keycloak_gitea_redirect_uri: "https://gitea.jayforweb.com/user/oauth2/keycloak/callback"
+    keycloak_gitea_web_origin: "https://gitea.jayforweb.com"
+
+    # User and Group details
+    gitea_admin_username: "gitea-admin"
+    gitea_admin_email: "gitea-admin@jayforweb.com"
+    gitea_admin_first_name: "Jay"
+    gitea_admin_last_name: "Amaranayake"
+    gitea_group_name: "gitea-admins"
+    gitea_group_membership_mapper_name: "gitea-admins-group-mapper"
+    gitea_group_membership_token_claim_name: "groups"
+
+  tasks:
+    - name: Authenticate to Keycloak Admin CLI
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" config credentials \
+          --server "http://localhost:8080/" \
+          --realm master \
+          --user "{{ keycloak_admin_user }}" \
+          --password "{{ keycloak_admin_password }}" \
+          --client admin-cli
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      changed_when: false
+      no_log: true
+
+    # --- Keycloak Client --------
+
+    - name: Ensure gitea client exists in 'homelab' realm
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create clients -r {{ keycloak_realm_name }} -f - <<EOF
+        {
+          "clientId": "{{ keycloak_gitea_client_id }}",
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "secret": "{{ gitea_keycloak_client_secret }}",
+          "redirectUris": [
+            "{{ keycloak_gitea_redirect_uri }}"
+          ],
+          "webOrigins": [
+            "{{ keycloak_gitea_web_origin }}"
+          ],
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "serviceAccountsEnabled": false,
+          "fullScopeAllowed": true,
+          "clientAuthenticatorType": "client-secret",
+          "consentRequired": false,
+          "attributes": {
+            "realm_client": "false",
+            "oidc.ciba.grant.enabled": "false",
+            "backchannel.logout.session.required": "true",
+            "standard.token.exchange.enabled": "false",
+            "oauth2.device.authorization.grant.enabled": "false",
+            "display.on.consent.screen": "false",
+            "backchannel.logout.revoke.offline.tokens": "false"
+          }
+        }
+        EOF
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: create_gitea_client
+      failed_when: "'already exists' not in create_gitea_client.stderr and create_gitea_client.rc != 0"
+      changed_when: create_gitea_client.rc == 0 and 'Created client' in create_gitea_client.stdout
+
+    - name: Get gitea client internal ID
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" get clients -r {{ keycloak_realm_name }} -q exact=true -q clientId={{ keycloak_gitea_client_id }} --fields id --format csv --noquotes
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: gitea_client_id_query
+      changed_when: false
+
+    - name: Set fact for gitea client internal ID
+      ansible.builtin.set_fact:
+        gitea_client_internal_id: "{{ gitea_client_id_query.stdout }}"
+
+    - name: Ensure 'gitea-admins-group-mapper' exists for 'gitea' client
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create clients/{{ gitea_client_internal_id }}/protocol-mappers/models -r {{ keycloak_realm_name }} -f - <<EOF
+        {
+          "name": "{{ gitea_group_membership_mapper_name }}",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "introspection.token.claim": "true",
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "lightweight.claim": "false",
+            "access.token.claim": "true",
+            "claim.name": "groups"
+          }
+        }
+        EOF
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: create_group_mapper
+      failed_when: "'Protocol mapper exists with same name' not in create_group_mapper.stderr and create_group_mapper.rc != 0"
+      changed_when: create_group_mapper.rc == 0 and 'Created protocol mapper' in create_group_mapper.stdout
+
+    # --- Keycloak Groups --------
+
+    - name: Ensure 'gitea-admins' group exists in 'homelab' realm
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create groups -r {{ keycloak_realm_name }} -f - <<EOF
+        {
+          "name": "{{ gitea_group_name }}"
+        }
+        EOF
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: create_gitea_admins_group
+      failed_when: "'already exists' not in create_gitea_admins_group.stderr and create_gitea_admins_group.rc != 0"
+      changed_when: create_gitea_admins_group.rc == 0 and 'Created group' in create_gitea_admins_group.stdout
+
+    # --- Keycloak Users --------
+
+    - name: Check if 'gitea-admin' user exists in 'homelab' realm
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" get users -r {{ keycloak_realm_name }} -q exact=true -q username={{ gitea_admin_username }} --fields id --format csv --noquotes
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: gitea_admin_user_exists_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create 'gitea-admin' user in 'homelab' realm if it doesn't exist
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create users -r {{ keycloak_realm_name }} -f - <<EOF
+        {
+          "username": "{{ gitea_admin_username }}",
+          "email": "{{ gitea_admin_email }}",
+          "firstName": "{{ gitea_admin_first_name }}",
+          "lastName": "{{ gitea_admin_last_name }}",
+          "enabled": true,
+          "emailVerified": false
+        }
+        EOF
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: create_gitea_admin_user
+      when: gitea_admin_user_exists_check.stdout == ""
+      changed_when: create_gitea_admin_user.rc == 0 and 'Created user' in create_gitea_admin_user.stdout
+
+    - name: Set initial password for 'gitea-admin' user
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" set-password -r {{ keycloak_realm_name }} --username {{ gitea_admin_username }} --new-password "{{ gitea_admin_password }}"
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      no_log: true
+      changed_when: false
+
+    - name: Get 'gitea-admin' user internal ID
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" get users -r {{ keycloak_realm_name }} -q exact=true -q username={{ gitea_admin_username }} --fields id --format csv --noquotes
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: gitea_admin_user_id_query
+      changed_when: false
+
+    - name: Get 'gitea-admins' group internal ID
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" get groups -r {{ keycloak_realm_name }} -q exact=true -q search={{ gitea_group_name }} --fields id --format csv --noquotes
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: gitea_admins_group_id_query
+      changed_when: false
+
+    - name: Add 'gitea-admin' user to 'gitea-admins' group
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" update users/{{ gitea_admin_user_id_query.stdout }}/groups/{{ gitea_admins_group_id_query.stdout }} -r {{ keycloak_realm_name }} \
+        -s "userId={{ gitea_admin_user_id_query.stdout }}" \
+        -s "groupId={{ gitea_admins_group_id_query.stdout }}" \
+        --no-merge
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: add_user_to_group_result
+      changed_when: add_user_to_group_result.rc == 0
+      failed_when: add_user_to_group_result.rc != 0 and 'User is already member of group' not in add_user_to_group_result.stderr and 'already exists' not in add_user_to_group_result.stderr
