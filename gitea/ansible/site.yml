@@ -1,0 +1,13 @@
+# Ansible playbook to configure gitea
+---
+- name: Deploy and Configure Gitea LXC Container
+  hosts: gitea_lxc
+  gather_facts: yes
+  become: yes
+
+  vars_files:
+    - secrets.yml
+
+  roles:
+    - role: gitea
+ 

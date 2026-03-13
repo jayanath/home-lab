@@ -1,0 +1,191 @@
+---
+# ── Dependencies ──────────────────────────────────────────────────────────────
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - git
+      - postgresql-client   # for pg_isready / psql access from host if needed
+      - curl
+      - wget
+    state: present
+    update_cache: true
+
+# ── System user ───────────────────────────────────────────────────────────────
+
+- name: Create git group
+  ansible.builtin.group:
+    name: "{{ gitea_group }}"
+    system: true
+    state: present
+
+- name: Create git system user
+  ansible.builtin.user:
+    name: "{{ gitea_user }}"
+    group: "{{ gitea_group }}"
+    home: "{{ gitea_home }}"
+    shell: "{{ gitea_shell }}"
+    comment: "Git Version Control"
+    system: true
+    create_home: true
+    password: "!"   # disabled password login
+
+# ── Directories ───────────────────────────────────────────────────────────────
+
+- name: Create Gitea data directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ gitea_user }}"
+    group: "{{ gitea_group }}"
+    mode: "0750"
+  loop:
+    - "{{ gitea_work_dir }}"
+    - "{{ gitea_work_dir }}/custom"
+    - "{{ gitea_work_dir }}/data"
+    - "{{ gitea_work_dir }}/log"
+    - "{{ gitea_repo_root }}"
+
+- name: Create Gitea config directory
+  ansible.builtin.file:
+    path: "{{ gitea_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ gitea_group }}"
+    mode: "0770"    # loosened so ansible can write app.ini; tightened after
+
+# ── Binary ────────────────────────────────────────────────────────────────────
+
+- name: Check currently installed Gitea version
+  ansible.builtin.command:
+    cmd: "{{ gitea_bin_path }} --version"
+  register: gitea_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Download Gitea binary
+  ansible.builtin.get_url:
+    url: "{{ gitea_download_url }}"
+    dest: "{{ gitea_bin_path }}"
+    mode: "0755"
+    owner: root
+    group: root
+  when: >
+    gitea_installed_version.rc != 0 or
+    gitea_version not in gitea_installed_version.stdout
+  notify: restart gitea
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+
+- name: Deploy app.ini from template
+  ansible.builtin.template:
+    src: app.ini.j2
+    dest: "{{ gitea_config_file }}"
+    owner: "{{ gitea_user }}"
+    group: "{{ gitea_group }}"
+    mode: "0640"
+  notify: restart gitea
+
+# ── Systemd service ───────────────────────────────────────────────────────────
+
+- name: Deploy gitea systemd service unit
+  ansible.builtin.template:
+    src: gitea.service.j2
+    dest: /etc/systemd/system/gitea.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - restart gitea
+
+- name: Enable and start Gitea service
+  ansible.builtin.systemd:
+    name: gitea
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# ── Harden config dir permissions post-install ────────────────────────────────
+
+- name: Tighten config directory permissions after install
+  ansible.builtin.file:
+    path: "{{ gitea_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ gitea_group }}"
+    mode: "0750"
+
+- name: Tighten app.ini permissions after install
+  ansible.builtin.file:
+    path: "{{ gitea_config_file }}"
+    state: file
+    owner: "{{ gitea_user }}"
+    group: "{{ gitea_group }}"
+    mode: "0640"
+
+# ── Keycloak OAuth2 ───────────────────────────────────────────────────────────
+
+- name: Flush handlers to ensure Gitea is restarted before OAuth2 setup
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Gitea to be ready
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ gitea_http_port }}"
+    status_code: 200
+  register: gitea_health
+  until: gitea_health.status == 200
+  retries: 15
+  delay: 5
+  delegate_to: localhost
+  become: false
+  when: gitea_oauth2_enabled
+
+- name: Check if Keycloak auth source already exists
+  ansible.builtin.command:
+    cmd: >
+      {{ gitea_bin_path }} admin auth list
+      --config {{ gitea_config_file }}
+  become_user: "{{ gitea_user }}"
+  environment:
+    GITEA_WORK_DIR: "{{ gitea_work_dir }}"
+  register: gitea_auth_list
+  changed_when: false
+  when: gitea_oauth2_enabled
+
+- name: Register Keycloak as OAuth2 provider
+  ansible.builtin.command:
+    cmd: >
+      {{ gitea_bin_path }} admin auth add-oauth
+      --name {{ gitea_oauth2_provider_name }}
+      --provider openidConnect
+      --key {{ gitea_oauth2_client_id }}
+      --secret {{ gitea_oauth2_client_secret }}
+      --auto-discover-url {{ gitea_oauth2_keycloak_url }}/realms/{{ gitea_oauth2_keycloak_realm }}/.well-known/openid-configuration
+      --admin-group {{ gitea_oauth2_admin_group }}
+      --group-claim-name {{ gitea_oauth2_group_claim_name }}
+      --config {{ gitea_config_file }}
+  become_user: "{{ gitea_user }}"
+  environment:
+    GITEA_WORK_DIR: "{{ gitea_work_dir }}"
+  when:
+    - gitea_oauth2_enabled
+    - gitea_oauth2_provider_name not in gitea_auth_list.stdout
+
+- name: Update Keycloak OAuth2 provider if it exists
+  ansible.builtin.command:
+    cmd: >
+      {{ gitea_bin_path }} admin auth update-oauth
+      --name {{ gitea_oauth2_provider_name }}
+      --provider openidConnect
+      --key {{ gitea_oauth2_client_id }}
+      --secret {{ gitea_oauth2_client_secret }}
+      --auto-discover-url {{ gitea_oauth2_keycloak_url }}/realms/{{ gitea_oauth2_keycloak_realm }}/.well-known/openid-configuration
+      --admin-group {{ gitea_oauth2_admin_group }}
+      --group-claim-name {{ gitea_oauth2_group_claim_name }}
+      --config {{ gitea_config_file }}
+  become_user: "{{ gitea_user }}"
+  environment:
+    GITEA_WORK_DIR: "{{ gitea_work_dir }}"
+  when:
+    - gitea_oauth2_enabled
+    - gitea_oauth2_provider_name in gitea_auth_list.stdout

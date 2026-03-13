@@ -1,0 +1,17 @@
+[Unit]
+Description=Gitea (Git with a cup of tea)
+After=network.target
+After=postgresql.service
+
+[Service]
+RestartSec=2s
+Type=simple
+User={{ gitea_user }}
+Group={{ gitea_group }}
+WorkingDirectory={{ gitea_work_dir }}/
+ExecStart={{ gitea_bin_path }} web --config {{ gitea_config_file }}
+Restart=always
+Environment=USER={{ gitea_user }} HOME={{ gitea_home }} GITEA_WORK_DIR={{ gitea_work_dir }}
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,65 @@
+---
+# defaults file for Gitea
+domain_name: "jayforweb.com"
+
+gitea_version: "1.25.4"
+gitea_arch: "linux-amd64"
+gitea_download_url: "https://dl.gitea.com/gitea/{{ gitea_version }}/gitea-{{ gitea_version }}-{{ gitea_arch }}"
+
+# System user/group
+gitea_user: git
+gitea_group: git
+gitea_home: /home/git
+gitea_shell: /bin/bash
+
+# Paths
+gitea_bin_path: /usr/local/bin/gitea
+gitea_work_dir: /var/lib/gitea
+gitea_config_dir: /etc/gitea
+gitea_config_file: "{{ gitea_config_dir }}/app.ini"
+
+# app.ini - Server
+gitea_http_domain: "gitea.{{ domain_name }}"
+gitea_http_listen_host: "0.0.0.0"
+gitea_http_port: 3000
+gitea_root_url: "https://{{ gitea_http_domain }}/"   # No port — Traefik handles TLS on 443
+gitea_ssh_domain: "{{ gitea_http_domain }}"
+gitea_ssh_port: 22
+gitea_disable_ssh: false
+
+# app.ini - Database (PostgreSQL) — Set in secrets.yml
+gitea_db_type: postgres
+gitea_db_host: ""
+gitea_db_name: ""
+gitea_db_user: ""
+gitea_db_password: ""
+gitea_db_ssl_mode: disable
+
+# app.ini - Repository
+gitea_repo_root: "{{ gitea_work_dir }}/data/repositories"
+
+# app.ini - Security — Set in secrets.yml
+gitea_secret_key: ""
+gitea_internal_token: ""
+gitea_jwt_secret: ""
+gitea_install_lock: true          # Set true to skip web installer
+
+# app.ini - Logging
+gitea_log_mode: file
+gitea_log_level: Info
+gitea_log_root_path: "{{ gitea_work_dir }}/log"
+
+# app.ini - Service
+gitea_disable_registration: false
+gitea_require_signin_view: false
+gitea_default_keep_email_private: true
+
+# Keycloak OAuth2
+gitea_oauth2_enabled: true
+gitea_oauth2_provider_name: "keycloak"
+gitea_oauth2_keycloak_url: "https://keycloak.{{ domain_name }}"
+gitea_oauth2_keycloak_realm: "homelab"
+gitea_oauth2_client_id: "gitea"
+gitea_oauth2_client_secret: ""   # Set in secrets.yml (ansible-vault)
+gitea_oauth2_admin_group: "gitea-admins"
+gitea_oauth2_group_claim_name: "groups"
