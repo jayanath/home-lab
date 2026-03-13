@@ -15,7 +15,8 @@
       - middlewares.yml
       - redirect.yml
       - keycloak.yml
-      - vault.yml     
+      - vault.yml
+      - gitea.yml     
 
   roles:
     - role: traefik
