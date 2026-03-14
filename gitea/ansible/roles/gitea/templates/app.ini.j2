@@ -36,9 +36,10 @@ INTERNAL_TOKEN = {{ gitea_internal_token }}
 JWT_SECRET     = {{ gitea_jwt_secret }}
 
 [service]
-DISABLE_REGISTRATION       = {{ gitea_disable_registration | lower }}
-REQUIRE_SIGNIN_VIEW        = {{ gitea_require_signin_view | lower }}
-DEFAULT_KEEP_EMAIL_PRIVATE = {{ gitea_default_keep_email_private | lower }}
+DISABLE_REGISTRATION             = {{ gitea_disable_registration | lower }}
+REQUIRE_SIGNIN_VIEW              = {{ gitea_require_signin_view | lower }}
+DEFAULT_KEEP_EMAIL_PRIVATE       = {{ gitea_default_keep_email_private | lower }}
+ALLOW_ONLY_EXTERNAL_REGISTRATION = true # Only allow registration via Keycloak SSO
 
 [log]
 MODE      = {{ gitea_log_mode }}
