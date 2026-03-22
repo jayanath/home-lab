@@ -48,7 +48,7 @@
       oidc_discovery_url: "{{ keycloak_url }}/realms/{{ keycloak_realm }}"
       oidc_client_id: "{{ keycloak_client_id }}"
       oidc_client_secret: "{{ keycloak_client_secret }}"
-      default_role: "default"
+      default_role: "vault-users"
     status_code: [200, 204]
 
 - name: Create default OIDC role

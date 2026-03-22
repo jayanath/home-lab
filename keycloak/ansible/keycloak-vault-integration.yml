@@ -1,4 +1,4 @@
-# Playbook to configure and manage Vault integration. 
+# Playbook to configure and manage Vault integration.
 ---
 - name: Manage Keycloak configurations for Vault
   hosts: containers
@@ -13,7 +13,7 @@
     keycloak_admin_user: "admin"
     keycloak_realm_name: "homelab"
 
-    # vault Client details
+    # Vault client details
     keycloak_vault_client_id: "vault"
     keycloak_vault_redirect_uri: "https://vault.jayforweb.com/ui/vault/auth/oidc/oidc/callback"
     keycloak_vault_web_origin: "https://vault.jayforweb.com/ui/vault/auth/oidc/oidc/callback"
@@ -23,13 +23,13 @@
     vault_admin_email: "vault-admin@jayforweb.com"
     vault_admin_first_name: "Jay"
     vault_admin_last_name: "Amaranayake"
-    vault_group_name: "vault-admins"
-    vault_group_membership_mapper_name: "vault-admins-group-mapper"
+    vault_admins_group_name: "vault-admins"
+    vault_users_group_name: "vault-users"
+    vault_group_membership_mapper_name: "groups"
     vault_group_membership_token_claim_name: "groups"
 
   tasks:
     - name: Authenticate to Keycloak Admin CLI
-      # This task needs to be in every playbook that uses Keycloak CLI
       ansible.builtin.shell: |
         "{{ keycloak_symlink }}/bin/kcadm.sh" config credentials \
           --server "http://localhost:8080/" \
@@ -40,10 +40,10 @@
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       changed_when: false
-      no_log: true # Stop the credentials leaking through the logs
+      no_log: true
 
-    # --- Keycloak clients --------
-    
+    # --- Keycloak Client --------
+
     - name: Ensure vault client exists in 'homelab' realm
       ansible.builtin.shell: |
         "{{ keycloak_symlink }}/bin/kcadm.sh" create clients -r {{ keycloak_realm_name }} -f - <<EOF
@@ -81,11 +81,12 @@
       register: create_vault_client
       failed_when: "'already exists' not in create_vault_client.stderr and create_vault_client.rc != 0"
       changed_when: create_vault_client.rc == 0 and 'Created client' in create_vault_client.stdout
-      no_log: false
 
     - name: Get vault client internal ID
       ansible.builtin.shell: |
-        "{{ keycloak_symlink }}/bin/kcadm.sh" get clients -r {{ keycloak_realm_name }} -q exact=true -q clientId={{ keycloak_vault_client_id }} --fields id --format csv --noquotes
+        "{{ keycloak_symlink }}/bin/kcadm.sh" get clients -r {{ keycloak_realm_name }} \
+          -q exact=true -q clientId={{ keycloak_vault_client_id }} \
+          --fields id --format csv --noquotes
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       register: vault_client_id_query
@@ -93,54 +94,97 @@
 
     - name: Set fact for vault client internal ID
       ansible.builtin.set_fact:
-        vault_client_internal_id: "{{ vault_client_id_query.stdout }}"
+        vault_client_internal_id: "{{ vault_client_id_query.stdout | trim }}"
 
-    - name: Ensure 'vault-admins-group-mapper' exists for 'vault' client
-      ansible.builtin.shell: |
-        "{{ keycloak_symlink }}/bin/kcadm.sh" create clients/{{ vault_client_internal_id }}/protocol-mappers/models -r {{ keycloak_realm_name }} -f - <<EOF
-        {
-          "name": "{{ vault_group_membership_mapper_name }}",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-group-membership-mapper",
-          "consentRequired": false,
-          "config": {
-            "full.path": "false",
-            "introspection.token.claim": "true",
-            "multivalued": "true",
-            "userinfo.token.claim": "true",
-            "id.token.claim": "true",
-            "lightweight.claim": "false",
-            "access.token.claim": "true",
+    # --- Protocol Mapper via REST API (kcadm.sh silently drops config in Keycloak 26.x) --------
+
+    - name: Get Keycloak admin token for REST API calls
+      ansible.builtin.uri:
+        url: "http://localhost:8080/realms/master/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: "{{ keycloak_admin_user }}"
+          password: "{{ keycloak_admin_password }}"
+          grant_type: "password"
+          client_id: "admin-cli"
+        status_code: 200
+      register: kc_token
+      no_log: true
+
+    - name: Get existing protocol mappers for vault client
+      ansible.builtin.uri:
+        url: "http://localhost:8080/admin/realms/{{ keycloak_realm_name }}/clients/{{ vault_client_internal_id }}/protocol-mappers/models"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ kc_token.json.access_token }}"
+        status_code: 200
+      register: vault_mappers
+
+    - name: Delete existing groups mapper if present
+      ansible.builtin.uri:
+        url: "http://localhost:8080/admin/realms/{{ keycloak_realm_name }}/clients/{{ vault_client_internal_id }}/protocol-mappers/models/{{ item.id }}"
+        method: DELETE
+        headers:
+          Authorization: "Bearer {{ kc_token.json.access_token }}"
+        status_code: [204, 404]
+      loop: "{{ vault_mappers.json | selectattr('name', 'equalto', vault_group_membership_mapper_name) | list }}"
+
+    - name: Create groups protocol mapper for vault client via REST API
+      ansible.builtin.uri:
+        url: "http://localhost:8080/admin/realms/{{ keycloak_realm_name }}/clients/{{ vault_client_internal_id }}/protocol-mappers/models"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ kc_token.json.access_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ vault_group_membership_mapper_name }}"
+          protocol: "openid-connect"
+          protocolMapper: "oidc-group-membership-mapper"
+          consentRequired: false
+          config:
+            "full.path": "false"
+            "introspection.token.claim": "true"
+            "multivalued": "true"
+            "userinfo.token.claim": "true"
+            "id.token.claim": "true"
+            "lightweight.claim": "false"
+            "access.token.claim": "true"
             "claim.name": "groups"
-          }
-        }
-        EOF
-      args:
-        chdir: "{{ keycloak_symlink }}/bin"
-      register: create_group_mapper
-      failed_when: "'Protocol mapper exists with same name' not in create_group_mapper.stderr and create_group_mapper.rc != 0"
-      changed_when: create_group_mapper.rc == 0 and 'Created protocol mapper' in create_group_mapper.stdout
+        status_code: 201
 
-    # --- Keycloak Groups ------------
+    # --- Keycloak Groups --------
 
     - name: Ensure 'vault-admins' group exists in 'homelab' realm
       ansible.builtin.shell: |
-        "{{ keycloak_symlink }}/bin/kcadm.sh" create groups -r {{ keycloak_realm_name }} -f - <<EOF
-        {
-          "name": "{{ vault_group_name }}"
-        }
-        EOF
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create groups \
+          -r {{ keycloak_realm_name }} \
+          -s name={{ vault_admins_group_name }}
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       register: create_vault_admins_group
       failed_when: "'already exists' not in create_vault_admins_group.stderr and create_vault_admins_group.rc != 0"
       changed_when: create_vault_admins_group.rc == 0 and 'Created group' in create_vault_admins_group.stdout
 
-    # --- Keycloak Users ------------
+    - name: Ensure 'vault-users' group exists in 'homelab' realm
+      ansible.builtin.shell: |
+        "{{ keycloak_symlink }}/bin/kcadm.sh" create groups \
+          -r {{ keycloak_realm_name }} \
+          -s name={{ vault_users_group_name }}
+      args:
+        chdir: "{{ keycloak_symlink }}/bin"
+      register: create_vault_users_group
+      failed_when: "'already exists' not in create_vault_users_group.stderr and create_vault_users_group.rc != 0"
+      changed_when: create_vault_users_group.rc == 0 and 'Created group' in create_vault_users_group.stdout
+
+    # --- Keycloak Users --------
 
     - name: Check if 'vault-admin' user exists in 'homelab' realm
       ansible.builtin.shell: |
-        "{{ keycloak_symlink }}/bin/kcadm.sh" get users -r {{ keycloak_realm_name }} -q exact=true -q username={{ vault_admin_username }} --fields id --format csv --noquotes
+        "{{ keycloak_symlink }}/bin/kcadm.sh" get users -r {{ keycloak_realm_name }} \
+          -q exact=true -q username={{ vault_admin_username }} \
+          --fields id --format csv --noquotes
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       register: vault_admin_user_exists_check
@@ -156,7 +200,7 @@
           "firstName": "{{ vault_admin_first_name }}",
           "lastName": "{{ vault_admin_last_name }}",
           "enabled": true,
-          "emailVerified": false
+          "emailVerified": true
         }
         EOF
       args:
@@ -167,7 +211,9 @@
 
     - name: Set initial password for 'vault-admin' user
       ansible.builtin.shell: |
-        "{{ keycloak_symlink }}/bin/kcadm.sh" set-password -r {{ keycloak_realm_name }} --username {{ vault_admin_username }} --new-password "{{ vault_admin_password }}"
+        "{{ keycloak_symlink }}/bin/kcadm.sh" set-password -r {{ keycloak_realm_name }} \
+          --username {{ vault_admin_username }} \
+          --new-password "{{ vault_admin_password }}"
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       no_log: true
@@ -175,7 +221,9 @@
 
     - name: Get 'vault-admin' user internal ID
       ansible.builtin.shell: |
-        "{{ keycloak_symlink }}/bin/kcadm.sh" get users -r {{ keycloak_realm_name }} -q exact=true -q username={{ vault_admin_username }} --fields id --format csv --noquotes
+        "{{ keycloak_symlink }}/bin/kcadm.sh" get users -r {{ keycloak_realm_name }} \
+          -q exact=true -q username={{ vault_admin_username }} \
+          --fields id --format csv --noquotes
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       register: vault_admin_user_id_query
@@ -183,7 +231,9 @@
 
     - name: Get 'vault-admins' group internal ID
       ansible.builtin.shell: |
-        "{{ keycloak_symlink }}/bin/kcadm.sh" get groups -r {{ keycloak_realm_name }} -q exact=true -q search={{ vault_group_name }} --fields id --format csv --noquotes
+        "{{ keycloak_symlink }}/bin/kcadm.sh" get groups -r {{ keycloak_realm_name }} \
+          -q exact=true -q search={{ vault_admins_group_name }} \
+          --fields id --format csv --noquotes
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       register: vault_admins_group_id_query
@@ -191,10 +241,12 @@
 
     - name: Add 'vault-admin' user to 'vault-admins' group
       ansible.builtin.shell: |
-        "{{ keycloak_symlink }}/bin/kcadm.sh" update users/{{ vault_admin_user_id_query.stdout }}/groups/{{ vault_admins_group_id_query.stdout }} -r {{ keycloak_realm_name }} \
-        -s "userId={{ vault_admin_user_id_query.stdout }}" \
-        -s "groupId={{ vault_admins_group_id_query.stdout }}" \
-        --no-merge
+        "{{ keycloak_symlink }}/bin/kcadm.sh" update \
+          users/{{ vault_admin_user_id_query.stdout }}/groups/{{ vault_admins_group_id_query.stdout }} \
+          -r {{ keycloak_realm_name }} \
+          -s "userId={{ vault_admin_user_id_query.stdout }}" \
+          -s "groupId={{ vault_admins_group_id_query.stdout }}" \
+          --no-merge
       args:
         chdir: "{{ keycloak_symlink }}/bin"
       register: add_user_to_group_result

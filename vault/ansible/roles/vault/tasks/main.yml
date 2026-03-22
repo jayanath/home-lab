@@ -107,3 +107,6 @@
 
 - include_tasks: keycloak-integration.yml
   when: keycloak_client_secret is defined
+
+- include_tasks: vault-setup.yml
+  when: keycloak_client_secret is defined

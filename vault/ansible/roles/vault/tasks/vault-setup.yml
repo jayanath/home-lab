@@ -1,0 +1,277 @@
+---
+# Vault setup tasks - KV engine, policies, and OIDC roles
+# Included from main.yml after keycloak-integration.yml
+
+# ── KV v2 Secrets Engine ──────────────────────────────────────────────────────
+
+- name: Check if KV v2 is already enabled
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/mounts"
+    method: GET
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: [200]
+  register: vault_mounts
+
+- name: Enable KV v2 secrets engine at secret/
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/mounts/secret"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      type: "kv"
+      options:
+        version: "2"
+    status_code: [200, 204, 400]  # 400 if already enabled
+
+# ── Get OIDC accessor for policy templating ───────────────────────────────────
+
+- name: Get OIDC auth mount accessor
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/auth"
+    method: GET
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: [200]
+  register: vault_auth_mounts
+
+- name: Set fact for OIDC accessor
+  ansible.builtin.set_fact:
+    vault_oidc_accessor: "{{ vault_auth_mounts.json['oidc/'].accessor }}"
+
+# ── Policies ──────────────────────────────────────────────────────────────────
+
+- name: Create vault-admins policy
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/policies/acl/vault-admins-policy"
+    method: PUT
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      policy: |
+        path "secret/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "secret/metadata/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "sys/auth/*" {
+          capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+        }
+        path "sys/policies/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "sys/mounts/*" {
+          capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+        }
+        path "sys/health" {
+          capabilities = ["read"]
+        }
+        path "sys/mounts" {
+          capabilities = ["read", "list"]
+        }
+    status_code: [200, 204]
+
+- name: Deploy vault-users policy file from template
+  ansible.builtin.template:
+    src: vault-users-policy.hcl.j2
+    dest: /tmp/vault-users-policy.hcl
+    mode: "0600"
+
+- name: Read vault-users policy file
+  ansible.builtin.slurp:
+    src: /tmp/vault-users-policy.hcl
+  register: vault_users_policy_content
+
+- name: Create vault-users policy
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/sys/policies/acl/vault-users-policy"
+    method: PUT
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      policy: "{{ vault_users_policy_content.content | b64decode }}"
+    status_code: [200, 204]
+
+- name: Remove temp policy file
+  ansible.builtin.file:
+    path: /tmp/vault-users-policy.hcl
+    state: absent
+
+# ── Seed shared secrets path ──────────────────────────────────────────────────
+
+- name: Seed shared secrets path
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/secret/data/shared/readme"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      data:
+        info: "Shared secrets readable by all authenticated users. Managed by vault-admins."
+    status_code: [200, 204]
+
+# ── OIDC Roles ────────────────────────────────────────────────────────────────
+
+- name: Create vault-admins OIDC role
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/auth/oidc/role/vault-admins"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      bound_audiences: ["{{ keycloak_client_id }}"]
+      allowed_redirect_uris:
+        - "https://{{ vault_domain }}/ui/vault/auth/oidc/oidc/callback"
+      user_claim: "preferred_username"
+      groups_claim: "groups"
+      oidc_scopes: ["openid", "profile", "email"]
+      bound_claims:
+        groups: ["vault-admins"]
+      policies: ["vault-admins-policy"]
+      ttl: "8h"
+    status_code: [200, 204]
+
+- name: Create vault-users OIDC role
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/auth/oidc/role/vault-users"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      bound_audiences: ["{{ keycloak_client_id }}"]
+      allowed_redirect_uris:
+        - "https://{{ vault_domain }}/ui/vault/auth/oidc/oidc/callback"
+      user_claim: "preferred_username"
+      groups_claim: "groups"
+      oidc_scopes: ["openid", "profile", "email"]
+      bound_claims: {}
+      policies: ["vault-users-policy"]
+      ttl: "8h"
+    status_code: [200, 204]
+
+# ── Identity Groups (auto-apply policies based on Keycloak group membership) ──
+
+- name: Look up vault-admins-group by name
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/identity/group/name/vault-admins-group"
+    method: GET
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: [200, 404]
+  register: vault_admins_group_lookup
+
+- name: Create vault-admins external identity group
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/identity/group"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      name: "vault-admins-group"
+      type: "external"
+      policies: ["vault-admins-policy"]
+    status_code: [200, 204]
+  register: vault_admins_group_created
+  when: vault_admins_group_lookup.status == 404
+
+- name: Set fact for vault-admins group ID
+  ansible.builtin.set_fact:
+    vault_admins_group_id: >-
+      {{
+        vault_admins_group_created.json.data.id
+        if vault_admins_group_lookup.status == 404
+        else vault_admins_group_lookup.json.data.id
+      }}
+
+- name: Look up vault-users-group by name
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/identity/group/name/vault-users-group"
+    method: GET
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: [200, 404]
+  register: vault_users_group_lookup
+
+- name: Create vault-users external identity group
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/identity/group"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      name: "vault-users-group"
+      type: "external"
+      policies: ["vault-users-policy"]
+    status_code: [200, 204]
+  register: vault_users_group_created
+  when: vault_users_group_lookup.status == 404
+
+- name: Set fact for vault-users group ID
+  ansible.builtin.set_fact:
+    vault_users_group_id: >-
+      {{
+        vault_users_group_created.json.data.id
+        if vault_users_group_lookup.status == 404
+        else vault_users_group_lookup.json.data.id
+      }}
+
+# ── Group Aliases ─────────────────────────────────────────────────────────────
+# List all aliases for each group and only create if not already present
+
+- name: Get aliases for vault-admins-group
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/identity/group/id/{{ vault_admins_group_id }}"
+    method: GET
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: [200]
+  register: vault_admins_group_detail
+
+- name: Create group alias linking Keycloak vault-admins to Vault identity group
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/identity/group-alias"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      name: "vault-admins"
+      mount_accessor: "{{ vault_oidc_accessor }}"
+      canonical_id: "{{ vault_admins_group_id }}"
+    status_code: [200, 204]
+  when: vault_admins_group_detail.json.data.alias is not defined or
+        vault_admins_group_detail.json.data.alias | length == 0
+
+- name: Get aliases for vault-users-group
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/identity/group/id/{{ vault_users_group_id }}"
+    method: GET
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: [200]
+  register: vault_users_group_detail
+
+- name: Create group alias linking Keycloak vault-users to Vault identity group
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vault_port }}/v1/identity/group-alias"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    body:
+      name: "vault-users"
+      mount_accessor: "{{ vault_oidc_accessor }}"
+      canonical_id: "{{ vault_users_group_id }}"
+    status_code: [200, 204]
+  when: vault_users_group_detail.json.data.alias is not defined or
+        vault_users_group_detail.json.data.alias | length == 0

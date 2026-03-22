@@ -1,0 +1,37 @@
+# vault-users-policy.hcl
+# Managed by Ansible — do not edit manually
+# Generated with OIDC accessor: {{ vault_oidc_accessor }}
+
+# Explicit deny on sys and auth — no admin access
+path "sys/*" {
+  capabilities = ["deny"]
+}
+
+path "auth/*" {
+  capabilities = ["deny"]
+}
+
+# Read/write access to own namespace only
+path "secret/data/users/{% raw %}{{identity.entity.aliases.{% endraw %}{{ vault_oidc_accessor }}{% raw %}.name}}{% endraw %}/*" {
+  capabilities = ["create", "read", "update", "delete"]
+}
+
+# List and manage own namespace metadata
+path "secret/metadata/users/{% raw %}{{identity.entity.aliases.{% endraw %}{{ vault_oidc_accessor }}{% raw %}.name}}{% endraw %}/*" {
+  capabilities = ["list", "read", "delete"]
+}
+
+# Allow listing the users/ prefix to see own folder
+path "secret/metadata/users/" {
+  capabilities = ["list"]
+}
+
+# Read-only access to shared secrets
+path "secret/data/shared/*" {
+  capabilities = ["read", "list"]
+}
+
+# List shared metadata
+path "secret/metadata/shared/*" {
+  capabilities = ["list", "read"]
+}
