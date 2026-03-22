@@ -163,6 +163,7 @@
       --auto-discover-url {{ gitea_oauth2_keycloak_url }}/realms/{{ gitea_oauth2_keycloak_realm }}/.well-known/openid-configuration
       --admin-group {{ gitea_oauth2_admin_group }}
       --group-claim-name {{ gitea_oauth2_group_claim_name }}
+      --scopes {{ gitea_oauth2_scopes }}
       --config {{ gitea_config_file }}
   become_user: "{{ gitea_user }}"
   environment:
@@ -198,6 +199,7 @@
       --auto-discover-url {{ gitea_oauth2_keycloak_url }}/realms/{{ gitea_oauth2_keycloak_realm }}/.well-known/openid-configuration
       --admin-group {{ gitea_oauth2_admin_group }}
       --group-claim-name {{ gitea_oauth2_group_claim_name }}
+      --scopes {{ gitea_oauth2_scopes }}
       --config {{ gitea_config_file }}
   become_user: "{{ gitea_user }}"
   environment:

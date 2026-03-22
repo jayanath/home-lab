@@ -19,10 +19,14 @@ terraform plan
 terraform apply
 
 ```
-### Step 03 - Run Keycloak integration with Gitea
+
+### Step 03 - Install and Configure Gitea
 ```
-From keycloak/ansible 
-Run ansible-playbook keycloak-gitea-integration.yml -i inventory.ini --ask-vault-pass
+Update the inventory.ini with host information
+
+ansible-vault encrypt secrets.yml to encrypt the secrets file
+
+ansible-playbook site.yml -i inventory.ini --ask-vault-pass
 ```
 
 ### Step 04 - Integrate Gitea with Traefik
@@ -31,13 +35,10 @@ Run Traefik playbook to deploy the Gitea routes.
 Make sure to update DNS records accordingly. In my case I update Unifi Cloud Gateway and Adguard.
 ```
 
-### Step 05 - Install and Configure Gitea
+### Step 05 - Run Keycloak integration with Gitea
 ```
-Update the inventory.ini with host information
-
-ansible-vault encrypt secrets.yml to encrypt the secrets file
-
-ansible-playbook site.yml -i inventory.ini --ask-vault-pass
+From keycloak/ansible 
+Run ansible-playbook keycloak-gitea-integration.yml -i inventory.ini --ask-vault-pass
 ```
 
 ### Step 06 - Test Gitea

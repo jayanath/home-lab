@@ -1,0 +1,36 @@
+# keycloak/ansible/users.yml
+# Define all homelab users here.
+# Passwords are stored in secrets.yml (ansible-vault).
+#
+# Available groups per app:
+#   Gitea:  gitea-admins, gitea-users
+#   Vault:  vault-admins, vault-users
+#
+# gitea-admins  → Gitea site admin
+# gitea-users   → Standard Gitea user (create repos, push code)
+# vault-admins  → Full Vault access + manage policies/auth
+# vault-users   → Read/write own namespace (secret/data/users/<username>/*) + read shared/
+
+homelab_users:
+  - username: "jay-admin"
+    email: "jay-admin@jayforweb.com"
+    first_name: "Jay"
+    last_name: "Amaranayake"
+    enabled: true
+    password: "{{ user_password_jay_admin }}"   # set in secrets.yml
+    gitea_groups:
+      - gitea-admins
+    vault_groups:
+      - vault-admins
+
+  # Standard user example
+  - username: "jay-ops"
+    email: "jay-ops@jayforweb.com"
+    first_name: "Jay"
+    last_name: "Amaranayake"
+    enabled: true
+    password: "{{ user_password_jay_ops }}"     # set in secrets.yml
+    gitea_groups:
+      - gitea-users
+    vault_groups:
+      - vault-users

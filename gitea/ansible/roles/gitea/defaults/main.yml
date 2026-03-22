@@ -63,3 +63,4 @@ gitea_oauth2_client_id: "gitea"
 gitea_oauth2_client_secret: ""   # Set in secrets.yml (ansible-vault)
 gitea_oauth2_admin_group: "gitea-admins"
 gitea_oauth2_group_claim_name: "groups"
+gitea_oauth2_scopes: "openid profile email"

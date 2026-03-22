@@ -49,3 +49,9 @@ ROOT_PATH = {{ gitea_log_root_path }}
 [oauth2]
 ENABLED    = true
 JWT_SECRET = {{ gitea_jwt_secret }}
+
+[oauth2_client]
+ENABLE_AUTO_REGISTRATION = true
+ACCOUNT_LINKING          = auto
+USERNAME                 = preferred_username
+REGISTER_EMAIL_CONFIRM   = false
