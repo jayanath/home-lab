@@ -1,0 +1,125 @@
+esphome:
+  name: m5-ambient-sensor
+  friendly_name: m5-ambient-sensor
+  platformio_options:
+    upload_speed: 115200
+  on_boot:
+    then:
+      - script.execute: display_timeout
+
+esp32:
+  board: m5stick-c
+  variant: esp32
+  framework:
+    type: arduino
+
+external_components:
+  - source: github://martydingo/esphome-axp192
+    components: [axp192]
+
+logger:
+
+ota:
+  - platform: esphome
+    password: !secret led_ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password  
+  manual_ip:
+    static_ip: 192.168.10.100
+    gateway: 192.168.10.1
+    subnet: 255.255.255.0
+  use_address: 192.168.10.100
+
+mqtt:
+  broker: 192.168.193.150
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  topic_prefix: sensors/ambient
+  id: mqtt_client
+
+i2c:
+  - id: bus_a
+    sda: GPIO21
+    scl: GPIO22
+    scan: true
+  - id: bus_grove
+    sda: GPIO32
+    scl: GPIO33
+    scan: true
+    frequency: 100kHz
+    setup_priority: 500
+
+sensor:
+  - platform: axp192
+    model: M5STICKC
+    address: 0x34
+    i2c_id: bus_a
+    update_interval: 30s
+    id: axp
+    battery_level:
+      name: "Battery Level"
+
+  - platform: bh1750
+    name: "Living Room Lux"
+    address: 0x23
+    update_interval: 60s
+    id: current_lux
+    i2c_id: bus_grove
+    setup_priority: 490
+
+spi:
+  clk_pin: GPIO13
+  mosi_pin: GPIO15
+
+globals:
+  - id: display_on
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO37
+      inverted: true
+    name: "Button A"
+    on_press:
+      then:
+        - lambda: "id(axp)->set_brightness(1.0);"
+        - globals.set:
+            id: display_on
+            value: 'true'
+        - script.execute: display_timeout    
+
+script:
+  - id: display_timeout
+    mode: restart
+    then:
+      - delay: 30s
+      - globals.set:
+          id: display_on
+          value: 'false'
+      - delay: 50ms   # give the display one render cycle to go black first
+      - lambda: "id(axp)->set_brightness(0.0);"
+
+font:
+  - file: "gfonts://Roboto"
+    id: roboto
+    size: 28
+
+display:
+  - platform: st7789v
+    id: my_display
+    model: TTGO TDisplay 135x240
+    cs_pin: GPIO5
+    dc_pin: GPIO23
+    reset_pin: GPIO19
+    rotation: 270
+    lambda: |-
+      if (id(display_on)) {
+        it.printf(40, 40, id(roboto), "Lux: %.1f", id(current_lux).state);
+      } else {
+        it.fill(Color(0, 0, 0));
+      }
