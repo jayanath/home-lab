@@ -1,8 +1,8 @@
 # Skylight Automation
 
-I wanted to make our old school LED skylight in the living room to follow the sun. This was simply to make my wife happy :-)
+I wanted to make our old-school LED skylight in the living room follow the sun. This was simply to make my {W|L}ife happy. :-)
 
-This is my first rodio with Home Automation, got into it out of necessity. I used Claud and Gemini extensively to help me with coding and other system setups. It was painful to work with these AI tools as they were taking me on various rabbit hole paths. However with enough patience, I managed to finish the project successfully.
+This is my first rodeo with home automation; I got into it out of necessity. I used Claude and Gemini extensively to help me with coding and other system setups. It was painful to work with these AI tools at times, as they frequently took me down various rabbit holes. However, with enough patience, I managed to finish the project successfully.
 
 Some of the software components like ESPHome, MQTT Broker, Node-RED, Zigbee2MQTT were deployed using Proxmox Helper Scripts.
 Source: https://community-scripts.org
