@@ -1,0 +1,127 @@
+[
+    {
+        "id": "bbc778d91c0ae8ac",
+        "type": "tab",
+        "label": "skylight",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "91845002f220abb0",
+        "type": "mqtt in",
+        "z": "bbc778d91c0ae8ac",
+        "name": "ingest",
+        "topic": "sensors/ambient/sensor/living_room_lux/state",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "adf8407f80d8d425",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 350,
+        "y": 220,
+        "wires": [
+            [
+                "adea52192a4f85eb"
+            ]
+        ]
+    },
+    {
+        "id": "adea52192a4f85eb",
+        "type": "smooth",
+        "z": "bbc778d91c0ae8ac",
+        "name": "cleanup",
+        "property": "payload",
+        "action": "mean",
+        "count": "3",
+        "round": "",
+        "mult": "single",
+        "reduce": false,
+        "x": 560,
+        "y": 220,
+        "wires": [
+            [
+                "4899a8fe339fbde0"
+            ]
+        ]
+    },
+    {
+        "id": "4899a8fe339fbde0",
+        "type": "function",
+        "z": "bbc778d91c0ae8ac",
+        "name": "transform",
+        "func": "let lux = parseFloat(msg.payload);\nif (isNaN(lux)) return null;\n\nconst wasOff = context.get('isOff') || false;\nconst threshold = wasOff ? 5.0 : 2.0;\nconst isOff = lux < threshold;\ncontext.set('isOff', isOff);\n\nif (isOff) {\n    msg.payload = { \"state\": \"OFF\" };\n    return msg;\n}\n\n// Log scaling across outdoor range: ~2 lux (dusk) to ~50,000 lux (bright sun)\nconst MIN_LOG = Math.log10(2);\nconst MAX_LOG = Math.log10(5000);\nlet brightness = Math.round(((Math.log10(lux) - MIN_LOG) / (MAX_LOG - MIN_LOG)) * 253 + 1);\n\nbrightness = Math.min(254, Math.max(1, brightness));\n\nmsg.payload = {\n    \"state\": \"ON\",\n    \"brightness\": brightness,\n    \"transition\": 20\n};\n\nnode.warn(`Lux: ${lux}, Brightness: ${brightness}`);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 220,
+        "wires": [
+            [
+                "cfb3b1a86287a31b"
+            ]
+        ]
+    },
+    {
+        "id": "cfb3b1a86287a31b",
+        "type": "mqtt out",
+        "z": "bbc778d91c0ae8ac",
+        "name": "output",
+        "topic": "zigbee2mqtt/Living Room Skylight/set",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "adf8407f80d8d425",
+        "x": 1030,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "adf8407f80d8d425",
+        "type": "mqtt-broker",
+        "name": "MQTT Broker",
+        "broker": "192.168.193.150",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "82710b21ea59c011",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-node-smooth": "0.1.2"
+        }
+    }
+]
