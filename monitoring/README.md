@@ -65,14 +65,9 @@ Make sure to add a DNS record for `grafana.{yourdomain}` points to traefik
 
 ### 6. Import Grafana dashboards
 
-In Grafana → **Dashboards → Import**, use these community dashboard IDs:
+In Grafana → **Dashboards → Import**
 
-| ID    | Description                                |
-|-------|--------------------------------------------|
-| 13139 | NetFlow/IPFIX overview (top talkers, geo)  |
-| 12006 | Per-host egress breakdown                  |
-
-Or drop any dashboard JSON file into `/var/lib/grafana/dashboards/` — Grafana
+Drop dashboard JSON file into `/var/lib/grafana/dashboards/` — Grafana
 auto-loads from that directory every 30 seconds.
 
 ## Verify
