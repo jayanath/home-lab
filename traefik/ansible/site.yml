@@ -1,4 +1,5 @@
 # Ansible playbook to configure traefik
+# Make sure to update the local DNS record. Point it to traefik server.
 ---
 - name: Deploy and Configure Traefik LXC Container
   hosts: traefik_lxc
@@ -16,8 +17,8 @@
       - redirect.yml
       - keycloak.yml
       - vault.yml
-      - gitea.yml     
-
+      - gitea.yml
+      - lms.yml
   roles:
     - role: traefik
  

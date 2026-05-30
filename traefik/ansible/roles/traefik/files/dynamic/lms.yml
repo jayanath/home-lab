@@ -1,0 +1,15 @@
+http:
+  routers:
+    to-lms:
+      entryPoints:
+        - websecure
+      rule: "Host(`lms.jayforweb.com`)"
+      service: lms
+      tls:
+        certResolver: dnsresolver
+
+  services:
+    lms:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.193.170:9000"
