@@ -1,0 +1,35 @@
+---
+- name: restart telegraf
+  ansible.builtin.systemd:
+    name: telegraf
+    daemon_reload: true
+    state: restarted
+
+- name: restart influxdb
+  ansible.builtin.systemd:
+    name: influxdb
+    daemon_reload: true
+    state: restarted
+
+- name: restart loki
+  ansible.builtin.systemd:
+    name: loki
+    daemon_reload: true
+    state: restarted
+
+- name: restart promtail
+  ansible.builtin.systemd:
+    name: promtail
+    daemon_reload: true
+    state: restarted
+
+- name: restart rsyslog
+  ansible.builtin.systemd:
+    name: rsyslog
+    state: restarted
+
+- name: restart grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    daemon_reload: true
+    state: restarted

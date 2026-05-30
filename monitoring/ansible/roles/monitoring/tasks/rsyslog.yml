@@ -1,0 +1,44 @@
+---
+# ── rsyslog receiver config ───────────────────────────────────────────────────
+
+- name: Deploy rsyslog UCG Max receiver config
+  ansible.builtin.template:
+    src: rsyslog-ucg.conf.j2
+    dest: /etc/rsyslog.d/10-ucg-receiver.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart rsyslog
+
+- name: Create UCG Max log file with correct permissions
+  ansible.builtin.file:
+    path: "{{ rsyslog_ucg_log_file }}"
+    state: touch
+    owner: syslog
+    group: adm
+    mode: "0640"
+
+- name: Deploy logrotate config for UCG Max syslog
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/ucg-max
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      {{ rsyslog_ucg_log_file }} {
+          daily
+          rotate 14
+          compress
+          delaycompress
+          missingok
+          notifempty
+          postrotate
+              /usr/lib/rsyslog/rsyslog-rotate
+          endscript
+      }
+
+- name: Enable and start rsyslog service
+  ansible.builtin.systemd:
+    name: rsyslog
+    enabled: true
+    state: started

@@ -1,0 +1,15 @@
+http:
+  routers:
+    to-grafana:
+      entryPoints:
+        - websecure
+      rule: "Host(`grafana.jayforweb.com`)"
+      service: grafana
+      tls:
+        certResolver: dnsresolver
+
+  services:
+    grafana:
+      loadBalancer:
+        servers:
+          - url: http://192.168.193.30:3000

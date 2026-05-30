@@ -1,0 +1,111 @@
+---
+# ── System user ───────────────────────────────────────────────────────────────
+
+- name: Create loki group
+  ansible.builtin.group:
+    name: "{{ loki_group }}"
+    system: true
+    state: present
+
+- name: Create loki system user
+  ansible.builtin.user:
+    name: "{{ loki_user }}"
+    group: "{{ loki_group }}"
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+    state: present
+
+# ── Directories ───────────────────────────────────────────────────────────────
+
+- name: Create Loki directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ loki_user }}"
+    group: "{{ loki_group }}"
+    mode: "0750"
+  loop:
+    - "{{ loki_config_dir }}"
+    - "{{ loki_data_dir }}"
+    - "{{ loki_data_dir }}/index"
+    - "{{ loki_data_dir }}/cache"
+    - "{{ loki_data_dir }}/chunks"
+    - "{{ loki_data_dir }}/compactor"
+
+# ── Binary ────────────────────────────────────────────────────────────────────
+
+- name: Check currently installed Loki version
+  ansible.builtin.command:
+    cmd: "{{ loki_bin_path }} --version"
+  register: loki_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Download Loki binary archive
+  ansible.builtin.get_url:
+    url: "{{ loki_download_url }}"
+    dest: "/tmp/loki-{{ loki_version }}.zip"
+    mode: "0644"
+  when: >
+    loki_installed_version.rc != 0 or
+    loki_version not in loki_installed_version.stdout
+
+- name: Extract Loki binary
+  ansible.builtin.unarchive:
+    src: "/tmp/loki-{{ loki_version }}.zip"
+    dest: /tmp/
+    remote_src: true
+  when: >
+    loki_installed_version.rc != 0 or
+    loki_version not in loki_installed_version.stdout
+
+- name: Install Loki binary
+  ansible.builtin.copy:
+    src: "/tmp/loki-{{ loki_arch }}"
+    dest: "{{ loki_bin_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  when: >
+    loki_installed_version.rc != 0 or
+    loki_version not in loki_installed_version.stdout
+  notify: restart loki
+
+- name: Clean up Loki download artifacts
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/loki-{{ loki_version }}.zip"
+    - "/tmp/loki-{{ loki_arch }}"
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+
+- name: Deploy Loki configuration
+  ansible.builtin.template:
+    src: loki.yaml.j2
+    dest: "{{ loki_config_dir }}/loki.yaml"
+    owner: "{{ loki_user }}"
+    group: "{{ loki_group }}"
+    mode: "0640"
+  notify: restart loki
+
+# ── Systemd ───────────────────────────────────────────────────────────────────
+
+- name: Deploy Loki systemd service unit
+  ansible.builtin.template:
+    src: loki.service.j2
+    dest: /etc/systemd/system/loki.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart loki
+
+- name: Enable and start Loki service
+  ansible.builtin.systemd:
+    name: loki
+    enabled: true
+    state: started
+    daemon_reload: true

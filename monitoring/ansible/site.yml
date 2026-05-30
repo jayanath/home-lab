@@ -1,0 +1,13 @@
+# Ansible playbook to configure the monitoring stack
+# Components: Telegraf (NetFlow/IPFIX collector), InfluxDB v2, Loki, Promtail, rsyslog, Grafana
+---
+- name: Deploy and Configure Monitoring LXC Container
+  hosts: monitoring_lxc
+  gather_facts: yes
+  become: yes
+
+  vars_files:
+    - secrets.yml
+
+  roles:
+    - role: monitoring

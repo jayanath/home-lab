@@ -8,3 +8,7 @@ https://lyrion.org/players-and-controllers/squeezebox-radio/
 https://lyrion.org/
 
 Once LXC is up and running, I SSH into it, downloaded the .deb and installed it using `apt install`.
+
+The radios are working as new! 
+
+Radio Paradise https://radioparadise.com/home is a great station for ad-free listening, playlists curated by real humans.

@@ -1,0 +1,77 @@
+---
+# ── Binary ────────────────────────────────────────────────────────────────────
+
+- name: Check currently installed Promtail version
+  ansible.builtin.command:
+    cmd: "{{ promtail_bin_path }} --version"
+  register: promtail_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Download Promtail binary archive
+  ansible.builtin.get_url:
+    url: "{{ promtail_download_url }}"
+    dest: "/tmp/promtail-{{ promtail_version }}.zip"
+    mode: "0644"
+  when: >
+    promtail_installed_version.rc != 0 or
+    promtail_version not in promtail_installed_version.stdout
+
+- name: Extract Promtail binary
+  ansible.builtin.unarchive:
+    src: "/tmp/promtail-{{ promtail_version }}.zip"
+    dest: /tmp/
+    remote_src: true
+  when: >
+    promtail_installed_version.rc != 0 or
+    promtail_version not in promtail_installed_version.stdout
+
+- name: Install Promtail binary
+  ansible.builtin.copy:
+    src: "/tmp/promtail-{{ promtail_arch }}"
+    dest: "{{ promtail_bin_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  when: >
+    promtail_installed_version.rc != 0 or
+    promtail_version not in promtail_installed_version.stdout
+  notify: restart promtail
+
+- name: Clean up Promtail download artifacts
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/promtail-{{ promtail_version }}.zip"
+    - "/tmp/promtail-{{ promtail_arch }}"
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+
+- name: Deploy Promtail configuration
+  ansible.builtin.template:
+    src: promtail.yaml.j2
+    dest: "{{ loki_config_dir }}/promtail.yaml"
+    owner: root
+    group: "{{ loki_group }}"
+    mode: "0640"
+  notify: restart promtail
+
+# ── Systemd ───────────────────────────────────────────────────────────────────
+
+- name: Deploy Promtail systemd service unit
+  ansible.builtin.template:
+    src: promtail.service.j2
+    dest: /etc/systemd/system/promtail.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart promtail
+
+- name: Enable and start Promtail service
+  ansible.builtin.systemd:
+    name: promtail
+    enabled: true
+    state: started
+    daemon_reload: true

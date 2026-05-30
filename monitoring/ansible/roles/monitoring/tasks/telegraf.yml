@@ -1,0 +1,45 @@
+---
+# ── APT repository (shares InfluxData repo with InfluxDB) ────────────────────
+
+- name: Install Telegraf
+  ansible.builtin.apt:
+    name: telegraf
+    state: present
+    update_cache: true
+
+# ── System user ───────────────────────────────────────────────────────────────
+
+- name: Ensure telegraf group exists
+  ansible.builtin.group:
+    name: "{{ telegraf_group }}"
+    system: true
+    state: present
+
+- name: Ensure telegraf user exists
+  ansible.builtin.user:
+    name: "{{ telegraf_user }}"
+    group: "{{ telegraf_group }}"
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+    state: present
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+
+- name: Deploy Telegraf configuration
+  ansible.builtin.template:
+    src: telegraf.conf.j2
+    dest: "{{ telegraf_config_dir }}/telegraf.conf"
+    owner: root
+    group: "{{ telegraf_group }}"
+    mode: "0640"
+  notify: restart telegraf
+
+# ── Systemd ───────────────────────────────────────────────────────────────────
+
+- name: Enable and start Telegraf service
+  ansible.builtin.systemd:
+    name: telegraf
+    enabled: true
+    state: started
+    daemon_reload: true

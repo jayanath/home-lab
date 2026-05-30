@@ -1,0 +1,32 @@
+# Telegraf configuration — managed by Ansible, do not edit manually.
+# Receives IPFIX/NetFlow from UCG Max on UDP {{ telegraf_netflow_port }}
+# and writes to InfluxDB v2.
+
+[agent]
+  interval = "10s"
+  round_interval = true
+  metric_batch_size = 5000
+  metric_buffer_limit = 50000
+  collection_jitter = "2s"
+  flush_interval = "10s"
+  flush_jitter = "5s"
+  precision = ""
+  hostname = "monitoring"
+  omit_hostname = false
+
+# ── Input: NetFlow / IPFIX ────────────────────────────────────────────────────
+# Receives IPFIX from UCG Max (configured in CyberSecure → Traffic Logging)
+[[inputs.netflow]]
+  ## Address to listen for NetFlow/IPFIX packets from UCG Max
+  service_address = "udp://:{{ telegraf_netflow_port }}"
+
+  ## Protocol auto-detection handles IPFIX, NetFlow v9, and v5
+  protocol = "IPFIX"
+
+# ── Output: InfluxDB v2 ───────────────────────────────────────────────────────
+[[outputs.influxdb_v2]]
+  urls = ["http://127.0.0.1:{{ influxdb_port }}"]
+  token = "{{ monitoring_influxdb_operator_token }}"
+  organization = "{{ influxdb_org }}"
+  bucket = "{{ influxdb_netflow_bucket }}"
+  timeout = "5s"

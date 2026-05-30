@@ -1,0 +1,16 @@
+[Unit]
+Description=Promtail log shipper (UCG Max syslog → Loki)
+After=network.target loki.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart={{ promtail_bin_path }} -config.file={{ loki_config_dir }}/promtail.yaml
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

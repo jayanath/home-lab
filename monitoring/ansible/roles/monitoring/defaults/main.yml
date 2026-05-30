@@ -1,0 +1,58 @@
+---
+# defaults file for monitoring
+
+# ── General ───────────────────────────────────────────────────────────────────
+domain_name: "jayforweb.com"
+monitoring_config_dir: /etc/monitoring
+
+# ── InfluxDB v2 ───────────────────────────────────────────────────────────────
+influxdb_version: "2.7.11"
+influxdb_org: "homelab"
+influxdb_netflow_bucket: "netflow"
+influxdb_syslog_bucket: "syslog"
+influxdb_retention: "720h"   # 30 days
+influxdb_port: 8086
+influxdb_data_dir: /var/lib/influxdb2
+influxdb_config_dir: /etc/influxdb2
+
+# Set in secrets.yml (ansible-vault)
+monitoring_influxdb_admin_user: ""
+monitoring_influxdb_admin_password: ""
+monitoring_influxdb_operator_token: ""
+
+# ── Telegraf ──────────────────────────────────────────────────────────────────
+telegraf_version: "1.34.0"
+telegraf_user: telegraf
+telegraf_group: telegraf
+telegraf_config_dir: /etc/telegraf
+telegraf_netflow_port: 2055   # UCG Max IPFIX destination port
+
+# ── Loki ──────────────────────────────────────────────────────────────────────
+loki_version: "3.4.2"
+loki_arch: "linux-amd64"
+loki_download_url: "https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-{{ loki_arch }}.zip"
+loki_bin_path: /usr/local/bin/loki
+loki_config_dir: /etc/loki
+loki_data_dir: /var/lib/loki
+loki_port: 3100
+loki_user: loki
+loki_group: loki
+
+# ── Promtail ──────────────────────────────────────────────────────────────────
+promtail_version: "3.4.2"
+promtail_arch: "linux-amd64"
+promtail_download_url: "https://github.com/grafana/loki/releases/download/v{{ promtail_version }}/promtail-{{ promtail_arch }}.zip"
+promtail_bin_path: /usr/local/bin/promtail
+promtail_port: 9080
+promtail_positions_file: /var/lib/loki/positions.yaml
+
+# ── rsyslog ───────────────────────────────────────────────────────────────────
+rsyslog_ucg_log_file: /var/log/ucg-max.log
+# UCG Max IP on the management VLAN — used to filter incoming syslog by source
+monitoring_ucg_max_ip: "192.168.193.1"
+
+# ── Grafana ───────────────────────────────────────────────────────────────────
+grafana_port: 3000
+grafana_provisioning_dir: /etc/grafana/provisioning
+grafana_dashboards_dir: /var/lib/grafana/dashboards
+grafana_http_domain: "grafana.{{ domain_name }}"

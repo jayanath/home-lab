@@ -1,0 +1,20 @@
+# rsyslog UCG Max receiver — managed by Ansible, do not edit manually.
+
+# ── Load input modules ────────────────────────────────────────────────────────
+module(load="imudp")
+input(type="imudp" port="514")
+
+module(load="imtcp")
+input(type="imtcp" port="514")
+
+# ── Route UCG Max logs to dedicated file ──────────────────────────────────────
+# Filter by source IP so only UCG Max logs land here.
+# All other remote syslog goes to the default system log.
+if $fromhost-ip == '{{ monitoring_ucg_max_ip }}' then {
+    action(
+        type="omfile"
+        file="{{ rsyslog_ucg_log_file }}"
+        template="RSYSLOG_FileFormat"
+    )
+    stop
+}

@@ -1,0 +1,132 @@
+Result: _result
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+             direction                     255
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+                   dst            3.208.205.75
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+              dst_port                         443
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+              eth_type                  0x0800
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+      flow_count_total                       13838
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+           flow_end_ms               1780141166704
+           flow_end_ms               1780141324674
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+       flow_end_reason            idle timeout
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+         flow_start_ms               1780141166704
+         flow_start_ms               1780138924152
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+             icmp_code                           3
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+             icmp_type                           3
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+              in_bytes                          40
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+            in_dst_mac       1e:6a:1b:20:3f:aa
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+            in_packets                           1
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+               in_snmp                          28
+               in_snmp                           1
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+            in_src_mac       ba:4d:b9:68:8b:3e
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+             interface                      lo
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+        interface_desc                Loopback
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+            ip_version                    IPv4
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+              next_hop              100.66.0.1
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+ observation_domain_id                           0
+Table: keys: [_field]
+          _field:string                 _value:string
+-----------------------  ----------------------------
+observation_domain_name  ipt_NETFLOW 2.6-dirty (null)
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+              out_snmp                           9
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+              protocol                     tcp
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+                   src           192.168.30.10
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+              src_port                       57574
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+               src_tos                    0x00
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+        system_init_ms               1779596612654
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+             tcp_flags                ...A....
+Table: keys: [_field]
+         _field:string           _value:string
+----------------------  ----------------------
+           tcp_options              0x81000000
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+  total_bytes_exported                      983497
+Table: keys: [_field]
+         _field:string                  _value:int
+----------------------  --------------------------
+  total_flows_exported                       13693
+Table: keys: [_field]
+          _field:string                  _value:int
+-----------------------  --------------------------
+total_messages_exported                         738

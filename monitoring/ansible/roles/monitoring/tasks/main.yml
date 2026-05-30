@@ -1,0 +1,45 @@
+---
+# ── Shared config directory ───────────────────────────────────────────────────
+
+- name: Create monitoring config directory
+  ansible.builtin.file:
+    path: "{{ monitoring_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# ── Install base packages ──────────────────────────────────────────────────────
+
+- name: Install required base packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - unzip
+      - gnupg
+      - apt-transport-https
+      - software-properties-common
+      - rsyslog
+    state: present
+    update_cache: true
+
+# ── Component tasks (in dependency order) ─────────────────────────────────────
+
+- name: Configure InfluxDB v2
+  ansible.builtin.import_tasks: influxdb.yml
+
+- name: Configure Telegraf (NetFlow/IPFIX collector)
+  ansible.builtin.import_tasks: telegraf.yml
+
+- name: Configure rsyslog syslog receiver
+  ansible.builtin.import_tasks: rsyslog.yml
+
+- name: Configure Loki log aggregation
+  ansible.builtin.import_tasks: loki.yml
+
+- name: Configure Promtail log shipper
+  ansible.builtin.import_tasks: promtail.yml
+
+- name: Configure Grafana
+  ansible.builtin.import_tasks: grafana.yml

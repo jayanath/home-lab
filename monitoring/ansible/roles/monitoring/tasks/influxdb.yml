@@ -1,0 +1,81 @@
+---
+# ── APT repository ────────────────────────────────────────────────────────────
+
+- name: Fetch InfluxData signing key from keyserver
+  ansible.builtin.command:
+    cmd: gpg --batch --yes --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys DA61C26A0585BD3B
+  changed_when: false
+
+- name: Export InfluxData signing key to apt trusted store
+  ansible.builtin.shell:
+    cmd: gpg --batch --yes --export DA61C26A0585BD3B > /etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg
+  changed_when: false
+
+- name: Add InfluxData APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg] https://repos.influxdata.com/ubuntu stable main"
+    filename: influxdata
+    state: present
+
+# ── Install ───────────────────────────────────────────────────────────────────
+
+- name: Install InfluxDB v2
+  ansible.builtin.apt:
+    name: influxdb2
+    state: present
+    update_cache: true
+
+- name: Enable and start InfluxDB service
+  ansible.builtin.systemd:
+    name: influxdb
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for InfluxDB to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ influxdb_port }}/health"
+    status_code: 200
+  register: influxdb_health
+  until: influxdb_health.status == 200
+  retries: 20
+  delay: 3
+
+# ── Initial setup (idempotent via sentinel file) ───────────────────────────────
+
+- name: Check if InfluxDB has been initialised
+  ansible.builtin.stat:
+    path: "{{ monitoring_config_dir }}/.influxdb-initialised"
+  register: influxdb_initialised
+
+- name: Run InfluxDB initial setup
+  ansible.builtin.command:
+    cmd: >
+      influx setup
+      --host http://localhost:{{ influxdb_port }}
+      --org {{ influxdb_org }}
+      --bucket {{ influxdb_netflow_bucket }}
+      --username {{ monitoring_influxdb_admin_user }}
+      --password {{ monitoring_influxdb_admin_password }}
+      --token {{ monitoring_influxdb_operator_token }}
+      --retention {{ influxdb_retention }}
+      --force
+  when: not influxdb_initialised.stat.exists
+
+- name: Create syslog bucket
+  ansible.builtin.command:
+    cmd: >
+      influx bucket create
+      --host http://localhost:{{ influxdb_port }}
+      --token {{ monitoring_influxdb_operator_token }}
+      --org {{ influxdb_org }}
+      --name {{ influxdb_syslog_bucket }}
+      --retention {{ influxdb_retention }}
+  when: not influxdb_initialised.stat.exists
+
+- name: Mark InfluxDB as initialised
+  ansible.builtin.file:
+    path: "{{ monitoring_config_dir }}/.influxdb-initialised"
+    state: touch
+    mode: "0600"
+  when: not influxdb_initialised.stat.exists

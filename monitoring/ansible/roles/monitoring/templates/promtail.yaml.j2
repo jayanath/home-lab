@@ -1,0 +1,32 @@
+# Promtail configuration — managed by Ansible, do not edit manually.
+server:
+  http_listen_port: {{ promtail_port }}
+  grpc_listen_port: 0
+
+positions:
+  filename: {{ promtail_positions_file }}
+
+clients:
+  - url: http://localhost:{{ loki_port }}/loki/api/v1/push
+
+scrape_configs:
+  - job_name: ucg-max-syslog
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: ucg-max
+          host: ucg-max
+          source: syslog
+          __path__: "{{ rsyslog_ucg_log_file }}"
+
+    # Parse the syslog timestamp and severity for better querying in Grafana
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<process>\S+?)(\[(?P<pid>\d+)\])?:\s+(?P<message>.*)$'
+      - labels:
+          hostname:
+          process:
+      - timestamp:
+          source: timestamp
+          format: "Jan _2 15:04:05"

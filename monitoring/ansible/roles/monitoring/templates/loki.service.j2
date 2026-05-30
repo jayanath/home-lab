@@ -1,0 +1,16 @@
+[Unit]
+Description=Grafana Loki log aggregation
+After=network.target
+
+[Service]
+Type=simple
+User={{ loki_user }}
+Group={{ loki_group }}
+ExecStart={{ loki_bin_path }} -config.file={{ loki_config_dir }}/loki.yaml
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

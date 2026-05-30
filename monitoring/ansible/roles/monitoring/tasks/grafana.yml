@@ -1,0 +1,91 @@
+---
+# ── APT repository ────────────────────────────────────────────────────────────
+
+- name: Download Grafana APT signing key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /tmp/grafana.key
+    mode: "0644"
+    force: true
+
+- name: Install Grafana APT signing key (dearmored)
+  ansible.builtin.command:
+    cmd: gpg --batch --yes --dearmor -o /etc/apt/trusted.gpg.d/grafana-archive.gpg /tmp/grafana.key
+  changed_when: false
+
+- name: Add Grafana APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/trusted.gpg.d/grafana-archive.gpg] https://apt.grafana.com stable main"
+    filename: grafana
+    state: present
+
+# ── Install ───────────────────────────────────────────────────────────────────
+
+- name: Install Grafana
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+    update_cache: true
+
+# ── Provisioning directories ───────────────────────────────────────────────────
+
+- name: Create Grafana provisioning directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: "0750"
+  loop:
+    - "{{ grafana_provisioning_dir }}/datasources"
+    - "{{ grafana_provisioning_dir }}/dashboards"
+    - "{{ grafana_dashboards_dir }}"
+
+# ── Datasource provisioning ───────────────────────────────────────────────────
+
+- name: Provision InfluxDB datasource
+  ansible.builtin.template:
+    src: influxdb-datasource.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/datasources/influxdb.yml"
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+
+- name: Provision Loki datasource
+  ansible.builtin.template:
+    src: loki-datasource.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/datasources/loki.yml"
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+
+# ── Dashboard provisioning ────────────────────────────────────────────────────
+
+- name: Deploy dashboard provisioning config
+  ansible.builtin.copy:
+    src: grafana-dashboards.yml
+    dest: "{{ grafana_provisioning_dir }}/dashboards/default.yml"
+    owner: grafana
+    group: grafana
+    mode: "0644"
+  notify: restart grafana
+
+# ── Systemd ───────────────────────────────────────────────────────────────────
+
+- name: Enable and start Grafana service
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Grafana to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ grafana_port }}/api/health"
+    status_code: 200
+  register: grafana_health
+  until: grafana_health.status == 200
+  retries: 20
+  delay: 3
