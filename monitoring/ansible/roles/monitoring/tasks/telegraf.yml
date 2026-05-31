@@ -7,6 +7,11 @@
     state: present
     update_cache: true
 
+- name: Install nut-client (for upsc used by NUT metrics script)
+  ansible.builtin.apt:
+    name: nut-client
+    state: present
+
 # ── System user ───────────────────────────────────────────────────────────────
 
 - name: Ensure telegraf group exists
@@ -33,6 +38,15 @@
     owner: root
     group: "{{ telegraf_group }}"
     mode: "0640"
+  notify: restart telegraf
+
+- name: Deploy NUT metrics script
+  ansible.builtin.copy:
+    src: nut-metrics.sh
+    dest: "{{ telegraf_config_dir }}/nut-metrics.sh"
+    owner: root
+    group: "{{ telegraf_group }}"
+    mode: "0750"
   notify: restart telegraf
 
 # ── Systemd ───────────────────────────────────────────────────────────────────

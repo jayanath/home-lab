@@ -73,6 +73,17 @@
       --retention {{ influxdb_retention }}
   when: not influxdb_initialised.stat.exists
 
+- name: Create NUT bucket
+  ansible.builtin.command:
+    cmd: >
+      influx bucket create
+      --host http://localhost:{{ influxdb_port }}
+      --token {{ monitoring_influxdb_operator_token }}
+      --org {{ influxdb_org }}
+      --name {{ influxdb_nut_bucket }}
+      --retention {{ influxdb_retention }}
+  when: not influxdb_initialised.stat.exists
+
 - name: Mark InfluxDB as initialised
   ansible.builtin.file:
     path: "{{ monitoring_config_dir }}/.influxdb-initialised"

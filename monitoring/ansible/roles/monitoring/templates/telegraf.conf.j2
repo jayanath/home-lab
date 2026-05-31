@@ -23,10 +23,31 @@
   ## Protocol auto-detection handles IPFIX, NetFlow v9, and v5
   protocol = "IPFIX"
 
-# ── Output: InfluxDB v2 ───────────────────────────────────────────────────────
+# ── Input: NUT UPS (via exec + upsc) ─────────────────────────────────────────
+# inputs.nut plugin not available in this Telegraf build — uses exec workaround
+[[inputs.exec]]
+  commands = ["/etc/telegraf/nut-metrics.sh {{ nut_server_ip }} {{ nut_ups_name }}"]
+  interval = "30s"
+  timeout = "10s"
+  data_format = "influx"
+  name_override = "nut"
+
+# ── Output: InfluxDB v2 (NetFlow) ─────────────────────────────────────────────
 [[outputs.influxdb_v2]]
   urls = ["http://127.0.0.1:{{ influxdb_port }}"]
   token = "{{ monitoring_influxdb_operator_token }}"
   organization = "{{ influxdb_org }}"
   bucket = "{{ influxdb_netflow_bucket }}"
   timeout = "5s"
+  [outputs.influxdb_v2.namepass]
+    measurement = ["netflow"]
+
+# ── Output: InfluxDB v2 (NUT) ─────────────────────────────────────────────────
+[[outputs.influxdb_v2]]
+  urls = ["http://127.0.0.1:{{ influxdb_port }}"]
+  token = "{{ monitoring_influxdb_operator_token }}"
+  organization = "{{ influxdb_org }}"
+  bucket = "{{ influxdb_nut_bucket }}"
+  timeout = "5s"
+  [outputs.influxdb_v2.namepass]
+    measurement = ["nut"]
