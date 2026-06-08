@@ -12,6 +12,7 @@ datasources:
       organization: "{{ influxdb_org }}"
       defaultBucket: "{{ influxdb_netflow_bucket }}"
       tlsSkipVerify: true
+      timeoutSeconds: 120
     secureJsonData:
       token: "{{ monitoring_influxdb_operator_token }}"
     editable: false

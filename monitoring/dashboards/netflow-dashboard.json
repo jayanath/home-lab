@@ -1,7 +1,7 @@
 {
   "title": "Network Egress \u2014 UCG Max",
   "uid": "netflow-ucgmax-homelab",
-  "description": "UCG Max egress monitoring \u2014 IPFIX via Telegraf \u2192 InfluxDB. Fields: src, dst, in_bytes, in_packets, protocol, dst_port.",
+  "description": "UCG Max egress monitoring \u2014 IPFIX via Telegraf \u2192 InfluxDB",
   "tags": [
     "netflow",
     "homelab",
@@ -79,10 +79,10 @@
             "sum"
           ]
         },
-        "orientation": "auto",
-        "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "none"
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
@@ -133,10 +133,10 @@
             "sum"
           ]
         },
-        "orientation": "auto",
-        "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "none"
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
@@ -187,10 +187,10 @@
             "sum"
           ]
         },
-        "orientation": "auto",
-        "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "none"
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
@@ -241,10 +241,10 @@
             "last"
           ]
         },
-        "orientation": "auto",
-        "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "none"
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
@@ -252,7 +252,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"src\")\n  |> group()\n  |> distinct(column: \"_value\")\n  |> count()",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\")\n  |> group(columns: [\"src\"])\n  |> first()\n  |> group()\n  |> count()",
           "refId": "A"
         }
       ]
@@ -346,7 +346,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 120
+                "value": 130
               }
             ]
           },
@@ -358,7 +358,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 200
+                "value": 210
               }
             ]
           }
@@ -381,7 +381,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\")\n  |> filter(fn: (r) => r._field == \"dst\" or r._field == \"in_bytes\")\n  |> pivot(rowKey: [\"_time\", \"host\", \"source\", \"version\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group(columns: [\"dst\"])\n  |> sum(column: \"in_bytes\")\n  |> sort(columns: [\"in_bytes\"], desc: true)\n  |> limit(n: 20)\n  |> rename(columns: {dst: \"Destination\", in_bytes: \"Bytes\"})",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\")\n  |> group(columns: [\"dst\"])\n  |> sum(column: \"_value\")\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 20)\n  |> rename(columns: {dst: \"Destination\", _value: \"Bytes\"})",
           "refId": "A"
         }
       ]
@@ -419,7 +419,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 120
+                "value": 130
               }
             ]
           },
@@ -431,7 +431,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 200
+                "value": 210
               }
             ]
           }
@@ -454,7 +454,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\")\n  |> filter(fn: (r) => r._field == \"src\" or r._field == \"in_bytes\")\n  |> pivot(rowKey: [\"_time\", \"host\", \"source\", \"version\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group(columns: [\"src\"])\n  |> sum(column: \"in_bytes\")\n  |> sort(columns: [\"in_bytes\"], desc: true)\n  |> limit(n: 20)\n  |> rename(columns: {src: \"Source\", in_bytes: \"Bytes\"})",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\")\n  |> group(columns: [\"src\"])\n  |> sum(column: \"_value\")\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 20)\n  |> rename(columns: {src: \"Source\", _value: \"Bytes\"})",
           "refId": "A"
         }
       ]
@@ -503,7 +503,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\")\n  |> filter(fn: (r) => r._field == \"protocol\" or r._field == \"in_bytes\")\n  |> pivot(rowKey: [\"_time\", \"host\", \"source\", \"version\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group(columns: [\"protocol\"])\n  |> sum(column: \"in_bytes\")\n  |> sort(columns: [\"in_bytes\"], desc: true)\n  |> rename(columns: {protocol: \"_field\", in_bytes: \"_value\"})",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\")\n  |> group(columns: [\"protocol\"])\n  |> sum(column: \"_value\")\n  |> sort(columns: [\"_value\"], desc: true)\n  |> group()\n  |> map(fn: (r) => ({_time: now(), _field: r.protocol, _value: r._value}))",
           "refId": "A"
         }
       ]
@@ -547,7 +547,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\")\n  |> filter(fn: (r) => r._field == \"dst_port\" or r._field == \"in_bytes\")\n  |> pivot(rowKey: [\"_time\", \"host\", \"source\", \"version\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group(columns: [\"dst_port\"])\n  |> sum(column: \"in_bytes\")\n  |> sort(columns: [\"in_bytes\"], desc: true)\n  |> limit(n: 15)\n  |> map(fn: (r) => ({ r with dst_port: string(v: r.dst_port) }))\n  |> rename(columns: {dst_port: \"Port\", in_bytes: \"Bytes\"})",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\")\n  |> group(columns: [\"dst_port\"])\n  |> sum(column: \"_value\")\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 15)\n  |> rename(columns: {dst_port: \"Port\", _value: \"Bytes\"})",
           "refId": "A"
         }
       ]
@@ -596,7 +596,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"flow_end_reason\")\n  |> group(columns: [\"_value\"])\n  |> count()\n  |> rename(columns: {_value: \"_field\", _stop: \"_value\"})\n  |> group()\n  |> keep(columns: [\"_field\", \"_value\"])",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\")\n  |> group(columns: [\"flow_end_reason\"])\n  |> sum(column: \"_value\")\n  |> group()\n  |> map(fn: (r) => ({_time: now(), _field: r.flow_end_reason, _value: r._value}))",
           "refId": "A"
         }
       ]
@@ -635,18 +635,6 @@
               {
                 "id": "custom.width",
                 "value": 120
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Packets"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 100
               }
             ]
           },
@@ -693,7 +681,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\")\n  |> filter(fn: (r) => r._field == \"src\" or r._field == \"dst\" or r._field == \"in_bytes\" or r._field == \"in_packets\" or r._field == \"protocol\" or r._field == \"dst_port\")\n  |> pivot(rowKey: [\"_time\", \"host\", \"source\", \"version\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ r with dst_port: string(v: r.dst_port) }))\n  |> group(columns: [\"src\", \"dst\", \"protocol\", \"dst_port\"])\n  |> reduce(fn: (r, accumulator) => ({ bytes: accumulator.bytes + r.in_bytes, packets: accumulator.packets + r.in_packets }), identity: {bytes: 0, packets: 0})\n  |> sort(columns: [\"bytes\"], desc: true)\n  |> limit(n: 50)\n  |> rename(columns: {src: \"Source\", dst: \"Destination\", protocol: \"Protocol\", dst_port: \"Dst Port\", bytes: \"Bytes\", packets: \"Packets\"})",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\")\n  |> group(columns: [\"src\", \"dst\", \"protocol\", \"dst_port\"])\n  |> sum(column: \"_value\")\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 50)\n  |> rename(columns: {src: \"Source\", dst: \"Destination\", protocol: \"Protocol\", dst_port: \"Dst Port\", _value: \"Bytes\"})",
           "refId": "A"
         }
       ]
@@ -701,7 +689,7 @@
     {
       "id": 12,
       "title": "Top DNS Destinations (Port 53)",
-      "description": "External IPs your devices are resolving DNS for \u2014 helps identify beaconing and unexpected callouts",
+      "description": "External IPs your devices are resolving \u2014 high frequency from one source may indicate beaconing",
       "type": "table",
       "gridPos": {
         "x": 0,
@@ -723,12 +711,16 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Flows"
+              "options": "Bytes"
             },
             "properties": [
               {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
                 "id": "custom.width",
-                "value": 100
+                "value": 120
               }
             ]
           },
@@ -740,23 +732,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 200
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Bytes"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "bytes"
-              },
-              {
-                "id": "custom.width",
-                "value": 100
+                "value": 210
               }
             ]
           }
@@ -765,7 +741,7 @@
       "options": {
         "sortBy": [
           {
-            "displayName": "Flows",
+            "displayName": "Bytes",
             "desc": true
           }
         ],
@@ -779,7 +755,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\")\n  |> filter(fn: (r) => r._field == \"dst\" or r._field == \"dst_port\" or r._field == \"in_bytes\")\n  |> pivot(rowKey: [\"_time\", \"host\", \"source\", \"version\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.dst_port == 53)\n  |> group(columns: [\"dst\"])\n  |> reduce(\n      fn: (r, accumulator) => ({flows: accumulator.flows + 1, bytes: accumulator.bytes + r.in_bytes}),\n      identity: {flows: 0, bytes: 0}\n  )\n  |> sort(columns: [\"flows\"], desc: true)\n  |> limit(n: 20)\n  |> rename(columns: {dst: \"Destination\", flows: \"Flows\", bytes: \"Bytes\"})",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\" and r.dst_port == \"53\")\n  |> group(columns: [\"dst\"])\n  |> sum(column: \"_value\")\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 20)\n  |> rename(columns: {dst: \"Destination\", _value: \"Bytes\"})",
           "refId": "A"
         }
       ]
@@ -787,7 +763,7 @@
     {
       "id": 13,
       "title": "DNS Query Volume Over Time",
-      "description": "Spike in DNS queries from a single source can indicate malware scanning or beaconing",
+      "description": "Per-source DNS query rate \u2014 spikes at odd hours warrant investigation",
       "type": "timeseries",
       "gridPos": {
         "x": 12,
@@ -827,7 +803,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\")\n  |> filter(fn: (r) => r._field == \"dst_port\" or r._field == \"src\")\n  |> pivot(rowKey: [\"_time\", \"host\", \"source\", \"version\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.dst_port == 53)\n  |> group(columns: [\"src\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: count, createEmpty: false)\n  |> yield(name: \"DNS queries per source\")",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\" and r.dst_port == \"53\")\n  |> group(columns: [\"src\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: count, createEmpty: false)\n  |> yield(name: \"DNS queries per source\")",
           "refId": "A"
         }
       ]
@@ -835,7 +811,7 @@
     {
       "id": 14,
       "title": "\u26a0 Suspicious: DNS Not Going to UCG Max",
-      "description": "Any device sending DNS queries to an IP other than your UCG Max gateway \u2014 could indicate DNS hijacking, hardcoded DNS, or malware bypassing your resolver",
+      "description": "DNS queries to any IP other than the UCG Max \u2014 hardcoded DNS in firmware, misconfiguration, or malware bypassing your resolver",
       "type": "table",
       "gridPos": {
         "x": 0,
@@ -854,18 +830,6 @@
           }
         },
         "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Flows"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 80
-              }
-            ]
-          },
           {
             "matcher": {
               "id": "byName",
@@ -902,14 +866,14 @@
               },
               {
                 "id": "custom.width",
-                "value": 100
+                "value": 110
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Flows"
+              "options": "Bytes"
             },
             "properties": [
               {
@@ -935,7 +899,7 @@
       "options": {
         "sortBy": [
           {
-            "displayName": "Flows",
+            "displayName": "Bytes",
             "desc": true
           }
         ],
@@ -949,7 +913,7 @@
             "type": "influxdb",
             "uid": "${datasource}"
           },
-          "query": "ucgIP = \"192.168.193.1\"\n\nfrom(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\")\n  |> filter(fn: (r) => r._field == \"src\" or r._field == \"dst\" or r._field == \"dst_port\" or r._field == \"in_bytes\")\n  |> pivot(rowKey: [\"_time\", \"host\", \"source\", \"version\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.dst_port == 53 and r.dst != ucgIP)\n  |> group(columns: [\"src\", \"dst\"])\n  |> reduce(\n      fn: (r, accumulator) => ({flows: accumulator.flows + 1, bytes: accumulator.bytes + r.in_bytes}),\n      identity: {flows: 0, bytes: 0}\n  )\n  |> sort(columns: [\"flows\"], desc: true)\n  |> rename(columns: {src: \"Source\", dst: \"DNS Server\", flows: \"Flows\", bytes: \"Bytes\"})",
+          "query": "from(bucket: \"netflow\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"netflow\" and r._field == \"in_bytes\" and r.dst_port == \"53\" and r.dst != \"192.168.193.1\")\n  |> group(columns: [\"src\", \"dst\"])\n  |> sum(column: \"_value\")\n  |> sort(columns: [\"_value\"], desc: true)\n  |> rename(columns: {src: \"Source\", dst: \"DNS Server\", _value: \"Bytes\"})",
           "refId": "A"
         }
       ]

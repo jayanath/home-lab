@@ -25,6 +25,29 @@
     state: present
     update_cache: true
 
+# ── Increase query timeout via systemd override ───────────────────────────────
+# Default InfluxDB query timeout is 10s which is too short for tag-based
+# aggregation queries across many series on a home lab machine.
+
+- name: Create InfluxDB systemd override directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/influxdb.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Set InfluxDB query timeout via systemd override
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/influxdb.service.d/timeout.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Service]
+      Environment="INFLUXD_QUERY_TIMEOUT=300s"
+  notify: restart influxdb
+
 - name: Enable and start InfluxDB service
   ansible.builtin.systemd:
     name: influxdb
@@ -70,17 +93,6 @@
       --token {{ monitoring_influxdb_operator_token }}
       --org {{ influxdb_org }}
       --name {{ influxdb_syslog_bucket }}
-      --retention {{ influxdb_retention }}
-  when: not influxdb_initialised.stat.exists
-
-- name: Create NUT bucket
-  ansible.builtin.command:
-    cmd: >
-      influx bucket create
-      --host http://localhost:{{ influxdb_port }}
-      --token {{ monitoring_influxdb_operator_token }}
-      --org {{ influxdb_org }}
-      --name {{ influxdb_nut_bucket }}
       --retention {{ influxdb_retention }}
   when: not influxdb_initialised.stat.exists
 
