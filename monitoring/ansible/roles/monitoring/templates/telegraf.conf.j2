@@ -5,10 +5,10 @@
 [agent]
   interval = "10s"
   round_interval = true
-  metric_batch_size = 5000
+  metric_batch_size = 1000
   metric_buffer_limit = 50000
   collection_jitter = "2s"
-  flush_interval = "10s"
+  flush_interval = "30s"
   flush_jitter = "5s"
   precision = ""
   hostname = "monitoring"
@@ -17,14 +17,10 @@
 # ── Input: NetFlow / IPFIX ────────────────────────────────────────────────────
 # Receives IPFIX from UCG Max (configured in CyberSecure → Traffic Logging)
 [[inputs.netflow]]
-  ## Address to listen for NetFlow/IPFIX packets from UCG Max
   service_address = "udp://:{{ telegraf_netflow_port }}"
-
-  ## Protocol auto-detection handles IPFIX, NetFlow v9, and v5
-  protocol = "IPFIX"
+  protocol = "ipfix"
 
 # ── Input: NUT UPS (via exec + upsc) ─────────────────────────────────────────
-# inputs.nut plugin not available in this Telegraf build — uses exec workaround
 [[inputs.exec]]
   commands = ["/etc/telegraf/nut-metrics.sh {{ nut_server_ip }} {{ nut_ups_name }}"]
   interval = "30s"
@@ -32,13 +28,38 @@
   data_format = "influx"
   name_override = "nut"
 
+# ── Processor: Convert key IPFIX fields to tags ───────────────────────────────
+# Tags become part of the InfluxDB series key, allowing Flux queries to group
+# by src/dst/protocol/port without pivot().
+# pivot() fails when Telegraf batches multiple flows from one IPFIX packet —
+# they all share the same nanosecond timestamp, breaking the pivot rowKey.
+# Home lab cardinality (~hundreds of unique destinations) is well within
+# InfluxDB v2 limits.
+[[processors.converter]]
+  namepass = ["netflow"]
+  [processors.converter.tags]
+    string = [
+      "src",
+      "dst",
+      "protocol",
+      "interface",
+      "interface_desc",
+      "ip_version",
+      "eth_type",
+      "flow_end_reason",
+      "next_hop",
+      "direction",
+    ]
+    # dst_port/src_port as string tags — enables grouping and filtering by port
+    integer = ["dst_port", "src_port"]
+
 # ── Output: InfluxDB v2 (NetFlow) ─────────────────────────────────────────────
 [[outputs.influxdb_v2]]
   urls = ["http://127.0.0.1:{{ influxdb_port }}"]
   token = "{{ monitoring_influxdb_operator_token }}"
   organization = "{{ influxdb_org }}"
   bucket = "{{ influxdb_netflow_bucket }}"
-  timeout = "5s"
+  timeout = "30s"
   [outputs.influxdb_v2.namepass]
     measurement = ["netflow"]
 
@@ -48,6 +69,6 @@
   token = "{{ monitoring_influxdb_operator_token }}"
   organization = "{{ influxdb_org }}"
   bucket = "{{ influxdb_nut_bucket }}"
-  timeout = "5s"
+  timeout = "30s"
   [outputs.influxdb_v2.namepass]
     measurement = ["nut"]
