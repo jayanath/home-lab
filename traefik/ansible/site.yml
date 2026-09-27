@@ -19,7 +19,6 @@
       - vault.yml
       - gitea.yml
       - lms.yml
-      - grafana.yml
   roles:
     - role: traefik
  
