@@ -5,8 +5,7 @@ http:
         - websecure
       rule: "Host(`vault.jayforweb.com`)"
       service: vault
-      tls:
-        certResolver: dnsresolver
+      tls: {} # Uses the default wildcard cert from tls.yml
       middlewares:
         - vault-headers
         

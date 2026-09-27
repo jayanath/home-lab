@@ -5,8 +5,7 @@ http:
         - websecure
       rule: "Host(`adguard.jayforweb.com`)"
       service: adguard
-      tls:
-        certResolver: dnsresolver
+      tls: {} # Uses the default wildcard cert from tls.yml
 
   services:
     adguard:

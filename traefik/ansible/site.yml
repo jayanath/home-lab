@@ -19,6 +19,7 @@
       - vault.yml
       - gitea.yml
       - lms.yml
+      - tls.yml
   roles:
     - role: traefik
  

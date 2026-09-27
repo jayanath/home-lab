@@ -16,10 +16,10 @@ certificatesResolvers:
       storage: /etc/traefik/acme.json
       dnsChallenge:
         provider: route53
-        delayBeforeCheck: 0
+        delayBeforeCheck: 60
         resolvers:
-          - "1.1.1.1:53"
-          - "8.8.8.8:53"
+          - "1.1.1.1"
+          - "8.8.8.8"
 
 log:
   level: DEBUG

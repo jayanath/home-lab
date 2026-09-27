@@ -1,0 +1,10 @@
+# /etc/traefik/dynamic/tls.yml
+tls:
+  stores:
+    default:
+      defaultGeneratedCert:
+        resolver: dnsresolver
+        domain:
+          main: "jayforweb.com"
+          sans:
+            - "*.jayforweb.com"

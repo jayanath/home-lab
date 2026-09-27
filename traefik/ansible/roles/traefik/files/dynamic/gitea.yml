@@ -5,8 +5,7 @@ http:
         - websecure
       rule: "Host(`gitea.jayforweb.com`)"
       service: gitea
-      tls:
-        certResolver: dnsresolver
+      tls: {} # Uses the default wildcard cert from tls.yml
       middlewares:
         - gitea-headers
 

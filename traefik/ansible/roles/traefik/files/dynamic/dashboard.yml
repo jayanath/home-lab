@@ -5,7 +5,5 @@ http:
       service: api@internal
       entryPoints:
         - websecure
-      tls:
-        certResolver: dnsresolver
-        domains: # Since we are using a wildcard cert, domains should be difined only in a single router to avoid requesting the same cert multiple times.
-          - main: "*.jayforweb.com"
+      tls: {} # Uses the default wildcard cert from tls.yml
+

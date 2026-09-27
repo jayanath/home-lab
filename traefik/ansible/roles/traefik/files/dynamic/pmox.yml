@@ -5,8 +5,7 @@ http:
         - websecure
       rule: "Host(`pmox.jayforweb.com`)"
       service: pmox
-      tls:
-        certResolver: dnsresolver
+      tls: {} # Uses the default wildcard cert from tls.yml
 
   services:
     pmox:

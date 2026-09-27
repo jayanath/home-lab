@@ -5,8 +5,7 @@ http:
         - websecure
       rule: "Host(`keycloak.jayforweb.com`)"
       service: keycloak
-      tls:
-        certResolver: dnsresolver
+      tls: {} # Uses the default wildcard cert from tls.yml
 
   services:
     keycloak:
